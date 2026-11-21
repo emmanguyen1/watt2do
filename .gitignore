@@ -43,3 +43,6 @@ ENV/
 # IDE
 .idea/
 .vscode/
+
+# Node.js dependencies
+node_modules/
