@@ -6,7 +6,8 @@ const assets = {
   '/':['page.html','text/html'],
   '/screen.css':['screen.css','text/css'],
   '/screen.mjs':['screen.mjs','text/javascript'],
-  '/map.js':['map.js','text/javascript']
+  '/map.js':['map.js','text/javascript'],
+  '/static/map.js':['map.js','text/javascript']
 };
 const key = process.env.GEMINI_API_KEY?.trim();
 const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
@@ -39,7 +40,7 @@ function respond(response,status,payload) {
 const scanSchema = {
   type:'object',required:['type','description','markings','condition','conditionEvidence'],properties:{
     type:{type:'string',enum:Object.keys(labels)},description:{type:'string'},markings:{type:'string'},
-    condition:{type:'string',enum:['damaged','swollen','leaking','hot','unsure']},conditionEvidence:{type:'string'}
+    condition:{type:'string',enum:['intact','damaged','swollen','leaking','hot','unsure']},conditionEvidence:{type:'string'}
   }
 };
 async function scan(request) {
@@ -58,10 +59,12 @@ async function scan(request) {
     'Describe only what is visible and quote only readable markings. Leave markings empty if unreadable.',
     'For ordinary AA, AAA, C, D or 9V shapes choose household unless a specific group is visibly supported.',
     'Use rechargeable for a clearly visible removable tool pack or printed rechargeable label. Use primary only for clear single-use lithium markings.',
+    'Use ebike when a label or clear design identifies an electric bicycle battery. Avoid guessing from size alone.',
     'Use starter for a conventional lead-acid vehicle battery with supporting markings.',
     'Distinguish a power bank with its own battery from a plug-in adapter or cable. Use unsure when the item is ambiguous.',
     'Suggest only clearly visible condition cues: swollen for bulging, leaking for visible leakage, damaged for cracks or dents, and hot only for visible smoke or flames.',
-    'Use unsure when no damage is visible or the image is unclear. A photo cannot verify temperature or hidden damage. Describe the visible cue briefly, or leave conditionEvidence empty if unsure. Do not provide disposal recommendations.'
+    'Use intact when there is one recognizable item, its exterior is clearly visible, and there are no visible signs of damage. Give a short reason based on visible condition.',
+    'Use unsure if the item or its exterior is unclear or obscured. A photo cannot verify temperature or hidden damage. Leave conditionEvidence empty if unsure. Do not provide disposal recommendations.'
   ].join(' ');
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
   const provider = await fetch(url,{
@@ -85,7 +88,8 @@ async function scan(request) {
   if (type === 'primary' && !/\b(?:FR6|FR03|FR14505|single[ -]use lithium|primary lithium|Li[ -/]?FeS2)\b/i.test(markings)) type = 'unknownBattery';
   if (type === 'starter' && !/\b(?:lead[ -]acid|AGM|VRLA|CCA|Pb)\b/i.test(markings)) type = 'unknownBattery';
   const evidence = typeof suggestion.conditionEvidence === 'string' ? suggestion.conditionEvidence.trim().slice(0,160) : '';
-  const condition = evidence && ['damaged','swollen','leaking','hot'].includes(suggestion.condition) ? suggestion.condition : 'unsure';
+  const eligible = ['damaged','swollen','leaking','hot'].includes(suggestion.condition) || (suggestion.condition === 'intact' && type !== 'unsure');
+  const condition = evidence && eligible ? suggestion.condition : 'unsure';
   return {type,description:suggestion.description.slice(0,180),markings,condition,
     conditionEvidence:condition === 'unsure' ? '' : evidence};
 }
@@ -122,8 +126,10 @@ export const server = createServer(async (request,response) => {
       response.writeHead(200,{'Content-Type':type + '; charset=utf-8','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});
       return response.end(content);
     }
+    if (request.method === 'GET' && path === '/api/maps-config') {
+      return respond(response,200,{ok:true,mapsKey:process.env.GOOGLE_MAPS_BROWSER_KEY?.trim() || ''});
+    }
     if (request.method === 'GET' && path === '/api/options') return respond(response,200,{groups,conditions,vision:Boolean(key)});
-    if (request.method === 'GET' && path === '/api/maps-config') return respond(response,200,{ok:true,mapsKey:process.env.GOOGLE_MAPS_BROWSER_KEY?.trim() || ''});
     if (request.method === 'POST' && path === '/api/plan') return respond(response,200,await plan(request));
     if (request.method === 'POST' && path === '/api/scan') return respond(response,200,await scan(request));
     return respond(response,404,{error:'Page not found.'});

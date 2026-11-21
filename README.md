@@ -8,7 +8,7 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 - **Visual Item Identification**: Leverages the Google Gemini Developer API to analyze photos or live camera captures to suggest battery chemistry and device classification.
 - **Safety-First Handling Rules**: Differentiates between intact items and compromised items (swollen, leaking, or hot). Automatically surfaces hazardous waste protocols, emergency handling precautions, and regulatory contacts for high-risk items.
-- **Local Drop-Off Directory & Interactive Mapping**: Features an interactive Leaflet and Google Maps interface with geolocation-based distance calculations, filtering municipal collection centers, retail drop-off partners (e.g., Batteries Plus, Best Buy, Staples), and county hazardous waste sites.
+- **Local Drop-Off Directory & Interactive Mapping**: Features an interactive Google Maps interface with geolocation-based distance calculations, filtering municipal collection centers, retail drop-off partners (e.g., Batteries Plus, Best Buy, Staples), and county hazardous waste sites.
 - **Privacy & Security by Design**: No user images are stored on disk. API keys remain protected server-side, and client-side confirmation ensures the user verifies item conditions before proceeding.
 - **Dual Server Support**: Offers a lightweight zero-dependency Node.js implementation as well as a full Python Flask backend.
 
@@ -18,7 +18,7 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 ```text
 watt2do/
-├── app.py                      # Flask server (port 5000): /api/health, /api/scan, registers dropoffs_bp
+├── app.py                      # Flask server (port 5001): /api/health, /api/scan, registers dropoffs_bp
 ├── vision.py                   # Gemini Vision API integration and structured JSON response validator
 ├── dropoffs.py                 # Blueprint dropoffs_bp: GET /api/dropoffs & GET /api/maps-config
 ├── data/
@@ -28,7 +28,8 @@ watt2do/
 ├── public/
 │   ├── page.html               # Frontend interface
 │   ├── screen.css              # Interface styling
-│   └── screen.mjs              # Interactive client script
+│   ├── screen.mjs              # Interactive client script
+│   └── map.js                  # Frontend map script
 ├── directory.mjs               # Node.js local recycling directory & rules
 ├── index.mjs                   # Lightweight Node.js server (port 3001)
 ├── requirements.txt            # Python dependencies (Flask, python-dotenv)
@@ -42,7 +43,7 @@ watt2do/
 
 ### Prerequisites
 
-- **Python 3.10+** (for Flask backend) or **Node.js 22+** (for Node backend)
+- **Node.js 22+** (for default server) or **Python 3.10+** (for Flask backend)
 - *(Optional)* **Gemini & Google Maps API Keys**: Obtain from [Google AI Studio](https://aistudio.google.com/api-keys) and [Google Cloud Console](https://console.cloud.google.com/).
 
 ### Installation & Execution
@@ -62,41 +63,41 @@ watt2do/
    ```env
    # Gemini Vision API
    GEMINI_API_KEY=your_gemini_api_key_here
-   GEMINI_MODEL=gemini-2.5-flash
+   GEMINI_MODEL=gemini-3.5-flash-lite
    MOCK_SCAN=0
 
    # Google Maps JavaScript API (Browser)
+   # Tip: Allow http://localhost:3001/* in website restrictions for local testing
    GOOGLE_MAPS_BROWSER_KEY=your_maps_browser_key_here
 
    # Google Places API (New) (Server-only)
    GOOGLE_PLACES_SERVER_KEY=your_places_server_key_here
 
-   PORT=5000
+   PORT=3001
+   FLASK_RUN_PORT=5001
    ```
-   > **Important Security Notice:** `.env` is listed in `.gitignore` to prevent credentials from being tracked. Never commit API keys or secret tokens to git.
+   > **Important Security Notice:** `.env` is listed in `.gitignore` to prevent credentials from being tracked in version control. Never commit API keys or secret tokens.
 
-3. **Start the Flask Application (Port 5000)**:
-   ```bash
-   pip install -r requirements.txt
-   python3 app.py
-   ```
-   Open [http://localhost:5000](http://localhost:5000) in your browser.
-
-   - Verify server health: `curl http://localhost:5000/api/health`
-   - Verify maps configuration: `curl http://localhost:5000/api/maps-config`
-   - Verify drop-offs endpoint: `curl "http://localhost:5000/api/dropoffs?lat=28.06&lng=-82.41&filter=batteries"`
-
-4. **Alternative: Lightweight Node.js Server (Port 3001)**:
+3. **Start the Node.js Application (Default - Port 3001)**:
    ```bash
    npm start
    ```
    Open [http://localhost:3001](http://localhost:3001) in your browser.
 
+4. **Alternative: Python Flask Application (Port 5001)**:
+   ```bash
+   pip install -r requirements.txt
+   python3 app.py
+   ```
+   - Verify health: `curl http://localhost:5001/api/health`
+   - Verify maps configuration: `curl http://localhost:5001/api/maps-config`
+   - Verify drop-offs endpoint: `curl "http://localhost:5001/api/dropoffs?lat=28.06&lng=-82.41&filter=batteries"`
+
 ---
 
 ## How It Works
 
-1. **Capture & Classify**: The user captures an image using a device camera or uploads a file. The server validates image dimensions and MIME type before sending the frame to the Gemini Developer API (`gemini-2.5-flash` or `gemini-3.5-flash-lite`).
+1. **Capture & Classify**: The user captures an image using a device camera or uploads a file. The server validates image dimensions and MIME type before sending the frame to the Gemini Developer API (`gemini-3.5-flash-lite` or `gemini-2.5-flash`).
 2. **User Verification**: Gemini returns an initial item and condition suggestion. The user reviews and confirms the item type and physical condition. To ensure safety, only the user can certify an item as intact and cool.
 3. **Safety Routing**: Rule-based logic evaluates the confirmed condition. Damaged, swollen, or punctured batteries immediately trigger safety mitigation steps (e.g., isolation, non-flammable containers, sand/vermiculite) and suppress routine recycling directions in favor of specialized hazardous waste handling.
 4. **Locate Drop-Off Facilities**: Intact items display eligible drop-off centers sorted by distance, incorporating operational hours, contact details, and acceptance criteria.
@@ -108,7 +109,7 @@ watt2do/
 The application provides a robust data pipeline and interactive map visualization:
 
 ### 1. Fallback Database (`data/fallback_dropoffs.json`)
-- Contains 12+ hand-verified drop-offs throughout the Tampa and USF area (Home Depot, Best Buy, Staples, Target, Batteries Plus Bulbs, USF EHS, and Hillsborough County Solid Waste Centers).
+- Contains 21 hand-verified drop-offs throughout Hillsborough County (Home Depot, Best Buy, Staples, Target, Batteries Plus Bulbs, USF EHS, and County Solid Waste / HHW Centers).
 - Each entry includes physical address, operating hours, geolocation coordinates, and accepted materials (`batteries`, `ewaste`, `hazardous`).
 - **Customization:** Additional facilities, operating hours, or accepted waste types can be configured directly in `data/fallback_dropoffs.json`.
 
@@ -118,7 +119,7 @@ The application provides a robust data pipeline and interactive map visualizatio
 - Calculates great-circle distance via the **Haversine formula**, rounds to 1 decimal place, sorts ascending, and returns top results.
 - **Fail-Safe Fallback:** If `GOOGLE_PLACES_SERVER_KEY` is not provided, times out (5 seconds), or returns no locations, `dropoffs.py` automatically falls back to `data/fallback_dropoffs.json` with `"source": "fallback"`.
 
-### 3. Google Maps Module (`static/map.js`)
+### 3. Google Maps Module (`public/map.js` / `static/map.js`)
 - Exposes `Watt2DoMap.show(containerId, userLocation, results)` and `Watt2DoMap.clear()`.
 - Dynamically retrieves the browser key from `GET /api/maps-config` and loads the **Google Maps JavaScript API** on demand.
 - Visual elements:
