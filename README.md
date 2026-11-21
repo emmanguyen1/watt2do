@@ -1,185 +1,149 @@
 # ⚡ Watt2Do — Watt's Next? Watt2Do.
 
-> **HackJam 26 Submission** | **Team Watt's Next** (Person A, Person B, Person C)  
-> **Tracks:** Sustainability &bull; Best Use of the Google Gemini API  
-> **Target Community:** USF & Hillsborough County / Tampa Bay Area
+Watt2Do is an intelligent battery and electronic waste identification and safe disposal assistant designed for Hillsborough County, Florida. It helps residents identify electronic items and battery chemistries, evaluate their physical condition, receive critical safety guidance, and locate verified municipal and commercial drop-off facilities.
 
 ---
 
-## 🌟 1. Project Overview & Problem Statement
+## Features
 
-**The Problem:** Millions of household batteries end up in standard trash or curbside recycling bins every year. When garbage truck compactors crush discarded lithium-ion batteries, or when terminals short against metal in recycling sorting facilities, they trigger catastrophic, explosive thermal runaway fires. Municipalities and recycling centers lose millions of dollars and put workers' lives at risk because consumers simply don't know:
-1. What kind of battery is inside their gadget
-2. Whether the battery is compromised or swollen
-3. Exactly where to safely take it locally
-
-**Our Solution:** **Watt2Do** is an instant mobile web application. Simply point your smartphone camera at any battery, gadget, or electronic device:
-- **Google Gemini Vision** accurately detects the battery type (alkaline, lithium-ion, lithium coin, lead-acid, NiMH) and inspects for physical damage (swelling, leaks, corrosion, punctures).
-- If damage is detected, **Watt2Do** raises an immediate **high-visibility safety alert** with specific containment steps (tape terminals, non-flammable containers, keep away from combustibles).
-- Using **Google Places API (New)** and **Google Maps JavaScript API**, the app pins verified local drop-off centers (Best Buy, Home Depot, Batteries Plus, and Hillsborough/USF county hazardous waste drop-offs) within driving distance of the user.
+- **Visual Item Identification**: Leverages the Google Gemini Developer API to analyze photos or live camera captures to suggest battery chemistry and device classification.
+- **Safety-First Handling Rules**: Differentiates between intact items and compromised items (swollen, leaking, or hot). Automatically surfaces hazardous waste protocols, emergency handling precautions, and regulatory contacts for high-risk items.
+- **Local Drop-Off Directory & Interactive Mapping**: Features an interactive Google Maps interface with geolocation-based distance calculations, filtering municipal collection centers, retail drop-off partners (e.g., Batteries Plus, Best Buy, Staples), and county hazardous waste sites.
+- **Privacy & Security by Design**: No user images are stored on disk. API keys remain protected server-side, and client-side confirmation ensures the user verifies item conditions before proceeding.
+- **Dual Server Support**: Offers a lightweight zero-dependency Node.js implementation as well as a full Python Flask backend.
 
 ---
 
-## 🚀 2. Live Demo & Key Features
+## Architecture & Codebase Overview
 
-- 📷 **Instant Mobile-First Camera Flow:** Seamless photo capture using native mobile browser camera input (`capture="environment"`), with automated client-side canvas downsampling (1024px) for blazing-fast inference.
-- 🤖 **Multimodal Gemini Vision Intelligence:** Classifies item chemistry, assesses structural damage, and outputs strict schema-validated safety directives.
-- 🚨 **Thermal Runaway Warning System:** Real-time damage detection flags swollen or leaking cells with specialized fire prevention procedures.
-- 🗺️ **Dynamic Nearby Drop-off Locator:** Real-time geolocation matching with the Places API (New) for certified e-waste and battery drop-offs, backed by an offline local JSON fallback.
-- 🌱 **Community Impact Counter:** Persisted local tracking displaying total hazardous units safely diverted from municipal landfills.
-- 💬 **"Watty" Recycling Helper:** An interactive in-app conversational assistant powered by Gemini to answer user questions about battery storage, terminal taping, and safe drop-offs.
-
----
-
-## 🏆 3. Best Use of Google Gemini API
-
-Watt2Do integrates the Google Gemini API at the core of its safety and classification pipeline:
-
-| Gemini Feature | Implementation in Watt2Do |
-| :--- | :--- |
-| **Multimodal Vision Analysis** | Detects subtle visual cues on unlabelled or worn cells: cylindrical form factors (AA/AAA/18650), pouch cells, button cells, and lead-acid terminals. |
-| **Damage & Hazard Detection** | Inspects for hazardous physical anomalies: pouch battery puffing/swelling, electrolyte leakage, crusty terminal corrosion, and denting. |
-| **Structured JSON Output** | Enforces a strict JSON contract (`item`, `category`, `batteryType`, `damaged`, `damageNotes`, `confidence`, `instructions`, `dropoffFilter`) to ensure zero UI hallucination or parsing crashes. |
-| **Context-Aware Safety Protocol Generation** | Produces concise, battery-chemistry-specific precautions (e.g. taping 9V/lithium terminals, non-flammable sandbox storage for swollen cells). |
-| **Conversational Assistant ("Watty")** | Interactive safety helper addressing specific hazardous disposal and handling inquiries. |
-
----
-
-## 🛠️ 4. Tech Stack
-
-- **Backend:** Python 3, Flask, `python-dotenv`, `google-genai` / Gemini Vision API, Google Places API (New)
-- **Frontend:** Mobile-first responsive HTML5, CSS3 with dark mode and `#C6F432` lime accent, Vanilla ES6+ JavaScript, HTML5 Canvas API, Geolocation API
-- **Maps & Location:** Google Maps JavaScript API, Google Places API (New) with distance calculation (Haversine) and local verified fallback dataset
-- **Deployment:** Containerized / HTTPS Cloud hosting (Google Cloud Run / Render)
-
----
-
-## 💻 5. How to Run Locally
-
-### Option A: Python Flask Backend (Port 5000)
-
-1. **Activate virtual environment & install requirements:**
-   ```bash
-   python -m venv .venv
-   .venv\Scripts\activate   # On Windows
-   # or source .venv/bin/activate  # On macOS/Linux
-   pip install -r requirements.txt
-   ```
-
-2. **Configure environment:**
-   Create `.env`:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   GOOGLE_MAPS_BROWSER_KEY=your_browser_key
-   GOOGLE_PLACES_SERVER_KEY=your_server_key
-   MOCK_SCAN=0  # Set to 1 for offline mock testing
-   ```
-
-3. **Start Flask server:**
-   ```bash
-   python app.py
-   ```
-   Open `http://localhost:5000/` or `http://localhost:5000/static/index.html`.
-
-### Option B: Node.js Demo (Port 3001)
-
-Requires Node.js 22 or newer:
-```bash
-npm start
+```text
+watt2do/
+├── app.py                      # Flask server (port 5001): /api/health, /api/scan, registers dropoffs_bp
+├── vision.py                   # Gemini Vision API integration and structured JSON response validator
+├── dropoffs.py                 # Blueprint dropoffs_bp: GET /api/dropoffs & GET /api/maps-config
+├── data/
+│   └── fallback_dropoffs.json  # Hand-verified Hillsborough County / USF area drop-off locations
+├── static/
+│   └── map.js                  # Google Maps JavaScript API module (Watt2DoMap)
+├── public/
+│   ├── page.html               # Frontend interface
+│   ├── screen.css              # Interface styling
+│   ├── screen.mjs              # Interactive client script
+│   └── map.js                  # Frontend map script
+├── directory.mjs               # Node.js local recycling directory & rules
+├── index.mjs                   # Lightweight Node.js server (port 3001)
+├── requirements.txt            # Python dependencies (Flask, python-dotenv)
+├── .env.example                # Template for environment keys
+└── .gitignore                  # Excludes .env, build files, and cache
 ```
-Open [http://localhost:3001](http://localhost:3001).
 
 ---
 
-## 📋 6. API Contract (v1.1)
+## Quick Start
 
-### `POST /api/scan`
-- **Request:** `multipart/form-data` with `image` file field (JPEG/PNG, resized to &le; 1024px).
-- **Response (200 OK):**
-  ```json
-  {
-    "ok": true,
-    "item": "AA battery",
-    "category": "battery",
-    "batteryType": "alkaline",
-    "damaged": false,
-    "damageNotes": "",
-    "confidence": 0.95,
-    "instructions": [
-      "Tape both terminals with electrical tape.",
-      "Store in a dry, cool container.",
-      "Drop off at a certified battery collection box."
-    ],
-    "dropoffFilter": "batteries"
-  }
-  ```
+### Prerequisites
 
-### `GET /api/dropoffs?lat=<lat>&lng=<lng>&filter=<batteries|ewaste|hazardous>&radiusKm=<10>`
-- **Response (200 OK):**
-  ```json
-  {
-    "ok": true,
-    "source": "places",
-    "results": [
-      {
-        "id": "ChIJ...",
-        "name": "Best Buy Tampa",
-        "lat": 28.055,
-        "lng": -82.435,
-        "address": "1234 E Fowler Ave, Tampa, FL",
-        "distanceKm": 1.4,
-        "openNow": true,
-        "hours": "Open until 8:00 PM",
-        "accepts": ["batteries", "ewaste"]
-      }
-    ]
-  }
-  ```
+- **Node.js 22+** (for default server) or **Python 3.10+** (for Flask backend)
+- *(Optional)* **Gemini & Google Maps API Keys**: Obtain from [Google AI Studio](https://aistudio.google.com/api-keys) and [Google Cloud Console](https://console.cloud.google.com/).
 
-### `GET /api/maps-config`
-- **Response (200 OK):**
-  ```json
-  {
-    "ok": true,
-    "mapsKey": "<GOOGLE_MAPS_BROWSER_KEY>"
-  }
-  ```
+### Installation & Execution
 
----
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/emmanguyen1/watt2do.git
+   cd watt2do
+   ```
 
-## 🎤 7. 3-Minute Demo Pitch & Video Script
+2. **Configure environment variables**:
+   Copy the example environment configuration:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your credentials to `.env`:
+   ```env
+   # Gemini Vision API
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   MOCK_SCAN=0
 
-### Segment 1: The Problem (0:00 - 0:30)
-- **Speaker:** "Every single week, a recycling facility or waste truck catches fire because someone unknowingly threw a dead lithium battery into the trash. When compacted, these batteries rupture, spark thermal runaway, and cause millions of dollars in damages. But how is a regular consumer supposed to know the difference between an alkaline AA, a pouch lithium cell, and a dangerous swollen battery?"
+   # Google Maps JavaScript API (Browser)
+   # Tip: Allow http://localhost:3001/* in website restrictions for local testing
+   GOOGLE_MAPS_BROWSER_KEY=your_maps_browser_key_here
 
-### Segment 2: Live Demo (0:30 - 2:00)
-- **Visual:** Person holding phone opens Watt2Do over HTTPS.
-- **Action 1 (Alkaline battery):** Scans a standard AA battery. App shows: Alkaline battery, 95% match, taped terminal instructions, and pins nearby drop-off bins at Home Depot & Best Buy on the Google Map.
-- **Action 2 (Damaged / Swollen Phone Battery):** Scans a bloated smartphone battery.
-- **Alert:** The screen flashes a bold red emergency banner: *"CRITICAL SAFETY ALERT: DAMAGED / SWOLLEN BATTERY DETECTED"*.
-- **Guidance:** Specific fire-prevention steps appear instantly: *"Do not charge or puncture. Place immediately in a non-combustible container of sand. Keep away from heat."*
-- **Drop-offs:** Google Places API pinpoints certified Tampa hazardous waste collection facilities equipped to receive damaged cells.
+   # Google Places API (New) (Server-only)
+   GOOGLE_PLACES_SERVER_KEY=your_places_server_key_here
 
-### Segment 3: Impact & Local Angle (2:00 - 2:30)
-- **Speaker:** "Watt2Do is tailored directly to the University of South Florida and Tampa Bay community. In addition to commercial partners like Batteries Plus and Best Buy, our database indexes local Hillsborough County Household Hazardous Waste Collection Centers and campus e-waste stations. Every verified scan increments our community impact counter, helping USF students keep toxic heavy metals out of our Floridian aquifers."
+   PORT=3001
+   FLASK_RUN_PORT=5001
+   ```
+   > **Important Security Notice:** `.env` is listed in `.gitignore` to prevent credentials from being tracked in version control. Never commit API keys or secret tokens.
 
-### Segment 4: What's Next? (2:30 - 3:00)
-- **Speaker:** "Watt's next for Watt2Do? We're taking our vision model to hardware: an ESP32-CAM smart disposal bin kiosk placed in campus dorms and dining halls that automatically scans discarded batteries at the door. Together with a gamified residence hall leaderboard, we can eradicate battery trash fires for good. Watt's next? Watt2Do!"
+3. **Start the Node.js Application (Default - Port 3001)**:
+   ```bash
+   npm start
+   ```
+   Open [http://localhost:3001](http://localhost:3001) in your browser.
+
+4. **Alternative: Python Flask Application (Port 5001)**:
+   ```bash
+   pip install -r requirements.txt
+   python3 app.py
+   ```
+   - Verify health: `curl http://localhost:5001/api/health`
+   - Verify maps configuration: `curl http://localhost:5001/api/maps-config`
+   - Verify drop-offs endpoint: `curl "http://localhost:5001/api/dropoffs?lat=28.06&lng=-82.41&filter=batteries"`
 
 ---
 
-## 📚 8. Public Data Sources
+## How It Works
 
-- [Hillsborough County battery collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries)
-- [Hillsborough County electronics collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics)
-- [Hillsborough County household hazardous waste collection](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-household-hazardous-waste)
-- [EPA lithium-ion battery guidance](https://www.epa.gov/recycle/frequent-questions-lithium-ion-batteries)
-- [Batteries Plus](https://www.batteriesplus.com/blog/power/battery-and-light-bulb-recycling), [Staples](https://www.staples.com/stores/recycling), [Best Buy](https://www.bestbuy.com/site/services/recycling/pcmcat149900050025.c), [eSmart](https://esmartrecycling.com/individual-dropoffs/) and [Posey](https://poseypowerbatteries.com/?page_id=614)
-- [Hillsborough County Environmental Protection Commission lead-acid directory](https://www.epchc.org/home/showpublisheddocument/3228/639065853819430000)
+1. **Capture & Classify**: The user captures an image using a device camera or uploads a file. The server validates image dimensions and MIME type before sending the frame to the Gemini Developer API (`gemini-3.5-flash-lite` or `gemini-2.5-flash`).
+2. **User Verification**: Gemini returns an initial item and condition suggestion. The user reviews and confirms the item type and physical condition. To ensure safety, only the user can certify an item as intact and cool.
+3. **Safety Routing**: Rule-based logic evaluates the confirmed condition. Damaged, swollen, or punctured batteries immediately trigger safety mitigation steps (e.g., isolation, non-flammable containers, sand/vermiculite) and suppress routine recycling directions in favor of specialized hazardous waste handling.
+4. **Locate Drop-Off Facilities**: Intact items display eligible drop-off centers sorted by distance, incorporating operational hours, contact details, and acceptance criteria.
 
 ---
 
-## 👥 9. Team Watt's Next
-- **Person A (Vision/AI & Backend):** Gemini vision prompt engineering, structured JSON validation, Flask server (`app.py`, `vision.py`).
-- **Person B (Data/Maps & Cloud):** Google Maps JavaScript integration, Google Places API (New) pipeline, fallback data (`dropoffs.py`, `map.js`).
-- **Person C (Frontend/UX & Submission):** Mobile-first UI, camera canvas downsampling, state machines, geolocation, impact counter, documentation (`static/index.html`, `static/style.css`, `static/app.js`, `README.md`).
+## Drop-Off Data Pipeline & Map Visualization
+
+The application provides a robust data pipeline and interactive map visualization:
+
+### 1. Fallback Database (`data/fallback_dropoffs.json`)
+- Contains 21 hand-verified drop-offs throughout Hillsborough County (Home Depot, Best Buy, Staples, Target, Batteries Plus Bulbs, USF EHS, and County Solid Waste / HHW Centers).
+- Each entry includes physical address, operating hours, geolocation coordinates, and accepted materials (`batteries`, `ewaste`, `hazardous`).
+- **Customization:** Additional facilities, operating hours, or accepted waste types can be configured directly in `data/fallback_dropoffs.json`.
+
+### 2. Backend Search & Filtering (`dropoffs.py`)
+- **Endpoint:** `GET /api/dropoffs?lat=<lat>&lng=<lng>&filter=<batteries|ewaste|hazardous>&radiusKm=<km>`
+- Queries Google **Places API (New)** Text Search biased by user GPS coordinates.
+- Calculates great-circle distance via the **Haversine formula**, rounds to 1 decimal place, sorts ascending, and returns top results.
+- **Fail-Safe Fallback:** If `GOOGLE_PLACES_SERVER_KEY` is not provided, times out (5 seconds), or returns no locations, `dropoffs.py` automatically falls back to `data/fallback_dropoffs.json` with `"source": "fallback"`.
+
+### 3. Google Maps Module (`public/map.js` / `static/map.js`)
+- Exposes `Watt2DoMap.show(containerId, userLocation, results)` and `Watt2DoMap.clear()`.
+- Dynamically retrieves the browser key from `GET /api/maps-config` and loads the **Google Maps JavaScript API** on demand.
+- Visual elements:
+  - **User beacon:** Blue marker indicating current position.
+  - **Numbered markers:** Precise pins for each nearby drop-off facility.
+  - **Interactive Info Windows:** Click any marker to view facility name, address, distance (km), current open status, and accepted disposal categories.
+  - **Auto-fit bounds:** Smoothly frames the user's location and nearby sites.
+  - **Default location:** Centers on the Tampa/USF area (`28.06, -82.41`) if geolocation permission is denied.
+
+---
+
+## Public Data & Regulatory Sources
+
+Facility information and handling guidelines are derived from official municipal and industry standards:
+
+- [Hillsborough County Battery Collection Guidelines](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries)
+- [Hillsborough County Electronics Recycling](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics)
+- [Hillsborough County Household Hazardous Waste Collection](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-household-hazardous-waste)
+- [EPA Lithium-Ion Battery Safety & Recycling](https://www.epa.gov/recycle/frequent-questions-lithium-ion-batteries)
+- [Hillsborough County EPC Lead-Acid Directory](https://www.epchc.org/home/showpublisheddocument/3228/639065853819430000)
+- Verified retail recycling programs: [Batteries Plus](https://www.batteriesplus.com/blog/power/battery-and-light-bulb-recycling), [Best Buy](https://www.bestbuy.com/site/services/recycling/pcmcat149900050025.c), [Staples](https://www.staples.com/stores/recycling), [eSmart Recycling](https://esmartrecycling.com/individual-dropoffs/), and [Posey Power Batteries](https://poseypowerbatteries.com/?page_id=614).
+
+---
+
+## Safety & Disclaimer
+
+Watt2Do provides location guidance and safety suggestions for informational purposes. Compromised lithium-ion batteries present severe thermal runaway and fire risks. Always contact recycling centers and municipal facilities in advance to confirm current acceptance policies, volume limits, operating hours, and handling fees.
