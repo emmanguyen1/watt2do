@@ -1,0 +1,122 @@
+[
+  {
+    "id": "tampa-hd-fowler",
+    "name": "The Home Depot - Rechargeable Battery & Bulb Recycling",
+    "lat": 28.0551,
+    "lng": -82.4385,
+    "address": "1712 E Fowler Ave, Tampa, FL 33612",
+    "openNow": true,
+    "hours": "Mon-Sat 6:00 AM - 10:00 PM, Sun 8:00 AM - 8:00 PM",
+    "accepts": ["batteries", "hazardous"]
+  },
+  {
+    "id": "tampa-bb-fowler",
+    "name": "Best Buy - Electronics & Battery Recycling Drop-off",
+    "lat": 28.0545,
+    "lng": -82.4344,
+    "address": "2111 E Fowler Ave, Tampa, FL 33612",
+    "openNow": true,
+    "hours": "Mon-Sat 10:00 AM - 8:00 PM, Sun 11:00 AM - 7:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-staples-fowler",
+    "name": "Staples - Eco-Services & Tech Recycling",
+    "lat": 28.0548,
+    "lng": -82.4335,
+    "address": "2121 E Fowler Ave, Tampa, FL 33612",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 8:00 PM, Sat 9:00 AM - 7:00 PM, Sun 10:00 AM - 6:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-target-usf",
+    "name": "Target - Guest Recycling Station",
+    "lat": 28.0706,
+    "lng": -82.4418,
+    "address": "13658 University Plaza, Tampa, FL 33613",
+    "openNow": true,
+    "hours": "Daily 8:00 AM - 10:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-bp-carrollwood",
+    "name": "Batteries Plus Bulbs - Carrollwood",
+    "lat": 28.0416,
+    "lng": -82.5042,
+    "address": "10037 N Dale Mabry Hwy, Tampa, FL 33618",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 7:00 PM, Sat 8:00 AM - 6:00 PM, Sun 10:00 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-bp-temple-terrace",
+    "name": "Batteries Plus Bulbs - Temple Terrace",
+    "lat": 28.0465,
+    "lng": -82.3938,
+    "address": "10926 N 56th St, Temple Terrace, FL 33617",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 7:00 PM, Sat 9:00 AM - 6:00 PM, Sun 10:00 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-lowes-fowler",
+    "name": "Lowe's Home Improvement - Battery Center",
+    "lat": 28.0542,
+    "lng": -82.3739,
+    "address": "6275 E Fowler Ave, Tampa, FL 33617",
+    "openNow": true,
+    "hours": "Mon-Sat 6:00 AM - 10:00 PM, Sun 8:00 AM - 8:00 PM",
+    "accepts": ["batteries", "hazardous"]
+  },
+  {
+    "id": "tampa-usf-ehs",
+    "name": "USF Environmental Health & Safety Drop-off",
+    "lat": 28.0645,
+    "lng": -82.4135,
+    "address": "4202 E Fowler Ave, Tampa, FL 33620",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-hillsborough-nw",
+    "name": "Hillsborough County Northwest Solid Waste Facility",
+    "lat": 28.0463,
+    "lng": -82.5732,
+    "address": "8001 W Linebaugh Ave, Tampa, FL 33625",
+    "openNow": true,
+    "hours": "Mon-Sat 7:30 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-hillsborough-sheldon",
+    "name": "Hillsborough County Household Hazardous Waste Center",
+    "lat": 28.0385,
+    "lng": -82.5835,
+    "address": "9805 Sheldon Rd, Tampa, FL 33635",
+    "openNow": false,
+    "hours": "1st & 3rd Saturday 8:00 AM - 2:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-hd-dalemabry",
+    "name": "The Home Depot - Carrollwood",
+    "lat": 28.0862,
+    "lng": -82.5065,
+    "address": "15255 N Dale Mabry Hwy, Tampa, FL 33618",
+    "openNow": true,
+    "hours": "Mon-Sat 6:00 AM - 10:00 PM, Sun 8:00 AM - 8:00 PM",
+    "accepts": ["batteries", "hazardous"]
+  },
+  {
+    "id": "tampa-bb-midtown",
+    "name": "Best Buy - Midtown Tampa",
+    "lat": 27.9577,
+    "lng": -82.5048,
+    "address": "1725 N Dale Mabry Hwy, Tampa, FL 33607",
+    "openNow": true,
+    "hours": "Mon-Sat 10:00 AM - 8:00 PM, Sun 11:00 AM - 7:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  }
+]

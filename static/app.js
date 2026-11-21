@@ -1,14 +1,17 @@
 /**
  * Watt2Do — Interactive Application Logic (Person C)
- * Implements:
- * - Mobile UI Screens (Scan, Loading, Result, Drop-offs, Impact, Profile)
- * - Native Camera & Canvas 1024px Downsampling
- * - POST /api/scan with Contract v1.1 validation
- * - Confidence ring calculation & damage alert banner
- * - Geolocation & GET /api/dropoffs
- * - Watt2DoMap.show("map", userLocation, results) integration
- * - Impact & Gamified Battery Gauge persistence
- * - Interactive "Watty" AI Recycling Helper
+ * Mobile-First Web App for Battery Recognition, Safety Assessment & Drop-off Routing.
+ * 
+ * Features:
+ * - High-speed Canvas downsampling (1024px max) with URL.createObjectURL for memory safety
+ * - Full Dark (#0d120e / #C6F432) & Light (#f6f8f2 / #7cb305) mode support (Mockup Pages 2-23)
+ * - Gemini Vision API scan integration (Contract v1.1)
+ * - Red hazard alert banner for swollen/damaged lithium cells (Thermal Runaway prevention)
+ * - Geolocation + Places API drop-offs locator with interactive map sync
+ * - Location modal supporting current GPS, Tampa ZIP search (e.g. 33620), and USF default
+ * - Gamified impact tracking (Battery progress gauge, levels, milestone badges)
+ * - Scan history, saved places, and custom user profiles
+ * - Interactive "Watty" conversational helper
  */
 
 (function () {
@@ -19,7 +22,23 @@
   const LOW_CONFIDENCE_THRESHOLD = 0.6;
   const STORAGE_KEY_IMPACT = 'watt2do_items_saved';
   const STORAGE_KEY_HISTORY = 'watt2do_scan_history';
+  const STORAGE_KEY_THEME = 'watt2do_theme';
+  const STORAGE_KEY_USER = 'watt2do_user_profile';
   const DEFAULT_COORDS = { lat: 28.06, lng: -82.41 }; // USF Tampa area
+
+  // Known Tampa / Hillsborough ZIP coordinates for fast offline resolution
+  const TAMPA_ZIPS = {
+    '33620': { lat: 28.060, lng: -82.412, name: 'USF Tampa Campus' },
+    '33612': { lat: 28.051, lng: -82.447, name: 'North Tampa / Fowler' },
+    '33613': { lat: 28.070, lng: -82.442, name: 'University Plaza' },
+    '33617': { lat: 28.046, lng: -82.380, name: 'Temple Terrace' },
+    '33602': { lat: 27.956, lng: -82.459, name: 'Downtown Tampa' },
+    '33607': { lat: 27.969, lng: -82.504, name: 'Midtown / West Tampa' },
+    '33618': { lat: 28.043, lng: -82.504, name: 'Carrollwood' },
+    '33625': { lat: 28.072, lng: -82.561, name: 'Citrus Park' },
+    '33511': { lat: 27.919, lng: -82.291, name: 'Brandon' },
+    '33584': { lat: 28.001, lng: -82.285, name: 'Seffner' },
+  };
 
   // --- Screens / Views ---
   const views = {
@@ -31,18 +50,38 @@
     profile: document.getElementById('view-profile'),
   };
 
-  // --- DOM Elements ---
+  // --- Header & Global Navigation ---
+  const brandHomeBtn = document.getElementById('brand-home-btn');
+  const headerThemeBtn = document.getElementById('header-theme-btn');
+  const headerThemeIcon = document.getElementById('header-theme-icon');
+  const headerProfileBtn = document.getElementById('header-profile-btn');
+  const tabBtnHome = document.getElementById('tab-btn-home');
+  const tabBtnProfile = document.getElementById('tab-btn-profile');
+
+  // Error Toast
+  const errorToast = document.getElementById('error-toast');
+  const errorToastText = document.getElementById('error-toast-text');
+  const errorDismissBtn = document.getElementById('error-dismiss-btn');
+
+  // Hidden File Inputs
   const cameraInput = document.getElementById('camera-input');
   const galleryInput = document.getElementById('gallery-input');
+
+  // Screen 1: Scan / Home Elements
+  const homeGreetingTitle = document.getElementById('home-greeting-title');
+  const homeGreetingDesc = document.getElementById('home-greeting-desc');
   const btnMainScan = document.getElementById('btn-main-scan');
   const btnGalleryUpload = document.getElementById('btn-gallery-upload');
   const btnOpenImpact = document.getElementById('btn-open-impact');
   const homeImpactCount = document.getElementById('home-impact-count');
+  const homeRecentScans = document.getElementById('home-recent-scans');
+  const homeRecentList = document.getElementById('home-recent-list');
+  const btnSeeAllHistory = document.getElementById('btn-see-all-history');
 
-  // Loading
+  // Screen 2: Loading Elements
   const loadingSubMessage = document.getElementById('loading-sub-message');
 
-  // Result Elements
+  // Screen 3: Result Elements
   const lowConfidenceBanner = document.getElementById('low-confidence-banner');
   const confidentResultContent = document.getElementById('confident-result-content');
   const btnRetakePhoto = document.getElementById('btn-retake-photo');
@@ -58,20 +97,18 @@
   const btnFindDropoffs = document.getElementById('btn-find-dropoffs');
   const btnRescanItem = document.getElementById('btn-rescan-item');
 
-  // Drop-off Elements
+  // Screen 4: Drop-offs Elements
   const gpsAreaLabel = document.getElementById('gps-area-label');
   const btnUpdateLocation = document.getElementById('btn-update-location');
+  const chipOpen = document.getElementById('filter-chip-open');
+  const chipBatteries = document.getElementById('filter-chip-batteries');
+  const chipEwaste = document.getElementById('filter-chip-ewaste');
   const placesCardsList = document.getElementById('places-cards-list');
   const placesLoadingIndicator = document.getElementById('places-loading-indicator');
   const placesEmptyState = document.getElementById('places-empty-state');
   const btnDropoffsDone = document.getElementById('btn-dropoffs-done');
 
-  // Filter Chips
-  const chipOpen = document.getElementById('filter-chip-open');
-  const chipBatteries = document.getElementById('filter-chip-batteries');
-  const chipEwaste = document.getElementById('filter-chip-ewaste');
-
-  // Impact Elements
+  // Screen 5: Impact Elements
   const impactBigNumber = document.getElementById('impact-big-number');
   const batteryLevelSubtitle = document.getElementById('battery-level-subtitle');
   const btnImpactScanAnother = document.getElementById('btn-impact-scan-another');
@@ -79,24 +116,19 @@
   const milestone5 = document.getElementById('ms-5items');
   const milestone10 = document.getElementById('ms-10items');
 
-  // Profile Elements
-  const headerProfileBtn = document.getElementById('header-profile-btn');
-  const brandHomeBtn = document.getElementById('brand-home-btn');
+  // Screen 6: Profile Elements
+  const profileDisplayName = document.getElementById('profile-display-name');
+  const profileDisplayEmail = document.getElementById('profile-display-email');
+  const btnProfileEdit = document.getElementById('btn-profile-edit');
   const profileItemsCount = document.getElementById('profile-items-count');
   const profileLevelVal = document.getElementById('profile-level-val');
   const profileNextScanDesc = document.getElementById('profile-next-scan-desc');
+  const btnMenuHistory = document.getElementById('btn-menu-history');
+  const btnMenuSaved = document.getElementById('btn-menu-saved');
+  const btnMenuSettings = document.getElementById('btn-menu-settings');
   const btnSignOut = document.getElementById('btn-sign-out');
 
-  // Navigation Tabs
-  const tabBtnHome = document.getElementById('tab-btn-home');
-  const tabBtnProfile = document.getElementById('tab-btn-profile');
-
-  // Error Toast
-  const errorToast = document.getElementById('error-toast');
-  const errorToastText = document.getElementById('error-toast-text');
-  const errorDismissBtn = document.getElementById('error-dismiss-btn');
-
-  // Watty Chat Elements
+  // Floating Watty Helper
   const wattyTrigger = document.getElementById('watty-floating-trigger');
   const wattyModal = document.getElementById('watty-modal');
   const btnCloseWatty = document.getElementById('btn-close-watty');
@@ -104,6 +136,38 @@
   const wattyChatForm = document.getElementById('watty-chat-form');
   const wattyInput = document.getElementById('watty-input');
   const quickChips = document.querySelectorAll('.quick-chip');
+
+  // Modals
+  const locationModal = document.getElementById('location-modal');
+  const btnCloseLocationModal = document.getElementById('btn-close-location-modal');
+  const btnLocUseGps = document.getElementById('btn-loc-use-gps');
+  const locZipInput = document.getElementById('loc-zip-input');
+  const btnLocSubmitZip = document.getElementById('btn-loc-submit-zip');
+  const btnLocSkipTampa = document.getElementById('btn-loc-skip-tampa');
+
+  const historyModal = document.getElementById('history-modal');
+  const btnCloseHistoryModal = document.getElementById('btn-close-history-modal');
+  const historyItemsList = document.getElementById('history-items-list');
+  const historyEmpty = document.getElementById('history-empty');
+
+  const savedModal = document.getElementById('saved-modal');
+  const btnCloseSavedModal = document.getElementById('btn-close-saved-modal');
+  const savedPlacesList = document.getElementById('saved-places-list');
+
+  const settingsModal = document.getElementById('settings-modal');
+  const btnCloseSettingsModal = document.getElementById('btn-close-settings-modal');
+  const btnToggleTheme = document.getElementById('btn-toggle-theme');
+  const btnClearStorage = document.getElementById('btn-clear-storage');
+
+  const joinModal = document.getElementById('join-modal');
+  const btnCloseJoinModal = document.getElementById('btn-close-join-modal');
+  const joinAccountForm = document.getElementById('join-account-form');
+  const authInputName = document.getElementById('auth-input-name');
+  const authInputEmail = document.getElementById('auth-input-email');
+  const authTabCreate = document.getElementById('auth-tab-create');
+  const authTabSignin = document.getElementById('auth-tab-signin');
+  const btnAuthGoogle = document.getElementById('btn-auth-google');
+  const btnAuthGuest = document.getElementById('btn-auth-guest');
 
   // --- Runtime State ---
   let currentScanData = null;
@@ -116,10 +180,76 @@
   // Initialization
   // ==========================================================================
   function init() {
+    initTheme();
+    initUserProfile();
     updateImpactMetrics();
+    renderRecentScansHome();
     setupEventListeners();
   }
 
+  // ==========================================================================
+  // Theme Management (Dark & Light Mode)
+  // ==========================================================================
+  function initTheme() {
+    const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
+    if (savedTheme === 'light') {
+      applyTheme('light');
+    } else {
+      applyTheme('dark');
+    }
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.remove('dark-theme');
+      document.body.classList.add('light-theme');
+      if (headerThemeIcon) headerThemeIcon.textContent = '🌙';
+      if (btnToggleTheme) btnToggleTheme.textContent = '☀️ Light Mode';
+      localStorage.setItem(STORAGE_KEY_THEME, 'light');
+    } else {
+      document.body.classList.remove('light-theme');
+      document.body.classList.add('dark-theme');
+      if (headerThemeIcon) headerThemeIcon.textContent = '☀️';
+      if (btnToggleTheme) btnToggleTheme.textContent = '🌙 Dark Mode';
+      localStorage.setItem(STORAGE_KEY_THEME, 'dark');
+    }
+  }
+
+  function toggleTheme() {
+    const isLight = document.body.classList.contains('light-theme');
+    applyTheme(isLight ? 'dark' : 'light');
+  }
+
+  // ==========================================================================
+  // User Profile
+  // ==========================================================================
+  function getUserProfile() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY_USER));
+      if (data && data.name) return data;
+    } catch (e) { /* ignore */ }
+    return { name: 'USF Eco Warrior', email: 'warrior@usf.edu' };
+  }
+
+  function saveUserProfile(profile) {
+    try {
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
+    } catch (e) { /* ignore */ }
+    initUserProfile();
+  }
+
+  function initUserProfile() {
+    const profile = getUserProfile();
+    if (profileDisplayName) profileDisplayName.textContent = profile.name;
+    if (profileDisplayEmail) profileDisplayEmail.textContent = profile.email;
+    if (homeGreetingTitle && profile.name !== 'USF Eco Warrior') {
+      homeGreetingTitle.textContent = `Hi, ${profile.name.split(' ')[0]}`;
+    }
+  }
+
+  // ==========================================================================
+  // Event Listeners
+  // ==========================================================================
   function setupEventListeners() {
     // Camera & Upload Triggers
     btnMainScan.addEventListener('click', () => {
@@ -145,8 +275,7 @@
 
     // Dropoffs View Actions
     btnUpdateLocation.addEventListener('click', () => {
-      cachedUserLocation = null;
-      loadDropoffPoints();
+      openModal(locationModal);
     });
 
     btnDropoffsDone.addEventListener('click', () => {
@@ -178,7 +307,7 @@
     btnOpenImpact.addEventListener('click', () => switchScreen('impact'));
     btnImpactScanAnother.addEventListener('click', () => switchScreen('scan'));
 
-    // Navigation & Tabs
+    // Navigation Tabs
     tabBtnHome.addEventListener('click', () => {
       setTabActive('home');
       switchScreen('scan');
@@ -199,13 +328,123 @@
       switchScreen('scan');
     });
 
-    btnSignOut.addEventListener('click', () => {
-      showError('Signed out of guest profile session.');
-      switchScreen('scan');
-      setTabActive('home');
+    headerThemeBtn.addEventListener('click', toggleTheme);
+
+    // Profile Menu Items
+    btnMenuHistory.addEventListener('click', () => {
+      populateHistoryModal();
+      openModal(historyModal);
     });
 
-    // Error dismiss
+    btnSeeAllHistory.addEventListener('click', () => {
+      populateHistoryModal();
+      openModal(historyModal);
+    });
+
+    btnMenuSaved.addEventListener('click', () => {
+      populateSavedModal();
+      openModal(savedModal);
+    });
+
+    btnMenuSettings.addEventListener('click', () => {
+      openModal(settingsModal);
+    });
+
+    btnToggleTheme.addEventListener('click', toggleTheme);
+
+    btnClearStorage.addEventListener('click', () => {
+      if (confirm('Reset your impact count and saved scan history?')) {
+        localStorage.removeItem(STORAGE_KEY_IMPACT);
+        localStorage.removeItem(STORAGE_KEY_HISTORY);
+        updateImpactMetrics();
+        renderRecentScansHome();
+        closeModal(settingsModal);
+        showError('Local data has been reset.');
+      }
+    });
+
+    btnSignOut.addEventListener('click', () => {
+      openModal(joinModal);
+    });
+
+    btnProfileEdit.addEventListener('click', () => {
+      const current = getUserProfile();
+      authInputName.value = current.name;
+      authInputEmail.value = current.email;
+      openModal(joinModal);
+    });
+
+    // Auth Form
+    authTabCreate.addEventListener('click', () => {
+      authTabCreate.classList.add('active');
+      authTabSignin.classList.remove('active');
+    });
+
+    authTabSignin.addEventListener('click', () => {
+      authTabSignin.classList.add('active');
+      authTabCreate.classList.remove('active');
+    });
+
+    joinAccountForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = authInputName.value.trim() || 'USF Eco Warrior';
+      const email = authInputEmail.value.trim() || 'warrior@usf.edu';
+      saveUserProfile({ name, email });
+      closeModal(joinModal);
+      showError(`Signed in as ${name}`);
+    });
+
+    btnAuthGoogle.addEventListener('click', () => {
+      saveUserProfile({ name: 'Google User', email: 'user@gmail.com' });
+      closeModal(joinModal);
+      showError('Signed in with Google account.');
+    });
+
+    btnAuthGuest.addEventListener('click', () => {
+      saveUserProfile({ name: 'Guest Explorer', email: 'guest@watt2do.app' });
+      closeModal(joinModal);
+      showError('Continuing as guest.');
+    });
+
+    // Location Modal Actions
+    btnLocUseGps.addEventListener('click', async () => {
+      closeModal(locationModal);
+      cachedUserLocation = null;
+      loadDropoffPoints();
+    });
+
+    btnLocSubmitZip.addEventListener('click', () => {
+      handleZipSubmit();
+    });
+
+    locZipInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleZipSubmit();
+      }
+    });
+
+    btnLocSkipTampa.addEventListener('click', () => {
+      closeModal(locationModal);
+      cachedUserLocation = { ...DEFAULT_COORDS };
+      gpsAreaLabel.textContent = 'GPS off: Tampa area';
+      loadDropoffPoints();
+    });
+
+    // Modal Close Buttons
+    btnCloseLocationModal.addEventListener('click', () => closeModal(locationModal));
+    btnCloseHistoryModal.addEventListener('click', () => closeModal(historyModal));
+    btnCloseSavedModal.addEventListener('click', () => closeModal(savedModal));
+    btnCloseSettingsModal.addEventListener('click', () => closeModal(settingsModal));
+    btnCloseJoinModal.addEventListener('click', () => closeModal(joinModal));
+
+    [locationModal, historyModal, savedModal, settingsModal, joinModal].forEach((modal) => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(modal);
+      });
+    });
+
+    // Error Toast Dismiss
     errorDismissBtn.addEventListener('click', dismissError);
 
     // Watty Chat
@@ -237,6 +476,42 @@
         }
       });
     });
+
+    // Global keyboard listener (Escape closes modals)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        [locationModal, historyModal, savedModal, settingsModal, joinModal, wattyModal].forEach((m) => {
+          if (m) m.classList.add('hidden');
+        });
+      }
+    });
+  }
+
+  // ==========================================================================
+  // Modal Helpers
+  // ==========================================================================
+  function openModal(modalEl) {
+    if (modalEl) modalEl.classList.remove('hidden');
+  }
+
+  function closeModal(modalEl) {
+    if (modalEl) modalEl.classList.add('hidden');
+  }
+
+  function handleZipSubmit() {
+    const raw = locZipInput.value.trim();
+    if (!raw) return;
+
+    closeModal(locationModal);
+    const match = TAMPA_ZIPS[raw];
+    if (match) {
+      cachedUserLocation = { lat: match.lat, lng: match.lng };
+      gpsAreaLabel.textContent = `Location: ${match.name}`;
+    } else {
+      cachedUserLocation = { ...DEFAULT_COORDS };
+      gpsAreaLabel.textContent = `Location: Tampa (${raw})`;
+    }
+    loadDropoffPoints();
   }
 
   // ==========================================================================
@@ -258,6 +533,7 @@
     } else if (targetKey === 'scan') {
       cameraInput.value = '';
       galleryInput.value = '';
+      renderRecentScansHome();
       if (window.Watt2DoMap && typeof window.Watt2DoMap.clear === 'function') {
         try { window.Watt2DoMap.clear(); } catch (e) { /* ignore */ }
       }
@@ -270,11 +546,14 @@
   }
 
   // ==========================================================================
-  // Image Capture & Canvas Downsampling (<= 1024px)
+  // Image Capture & Canvas Downsampling (Memory-Safe URL.createObjectURL)
   // ==========================================================================
   async function handleFileSelected(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
+
+    // Reset input value so re-selecting the same file fires change event
+    event.target.value = '';
 
     if (!file.type.startsWith('image/')) {
       showError('Please select a valid JPEG or PNG image.');
@@ -287,7 +566,7 @@
 
       const resizedBlob = await downsampleImageCanvas(file, MAX_IMAGE_DIMENSION);
 
-      setLoadingText('Analyzing chemistry & damage with Gemini...');
+      setLoadingText('Inspecting damage & chemistry with Gemini Vision...');
       const responseData = await postScanToBackend(resizedBlob);
 
       handleScanSuccess(responseData);
@@ -300,41 +579,44 @@
 
   function downsampleImageCanvas(file, maxDim) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const img = new Image();
-        img.onload = function () {
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
 
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Canvas context unavailable'));
-            return;
+      img.onload = function () {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
           }
+        }
 
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('Canvas image conversion failed'));
-          }, 'image/jpeg', 0.85);
-        };
-        img.onerror = () => reject(new Error('Could not load image'));
-        img.src = e.target.result;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context unavailable'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas image conversion failed'));
+        }, 'image/jpeg', 0.85);
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Could not decode photo from camera'));
+      };
+
+      img.src = objectUrl;
     });
   }
 
@@ -352,14 +634,14 @@
         body: formData,
       });
     } catch (networkError) {
-      throw new Error('Connection error. Please check your internet connection.');
+      throw new Error('Connection error. Please check your network and try again.');
     }
 
     let data;
     try {
       data = await res.json();
     } catch (parseError) {
-      throw new Error('Invalid response from server.');
+      throw new Error('Server returned an unreadable response.');
     }
 
     if (!res.ok || !data.ok) {
@@ -378,7 +660,7 @@
 
     const confidence = typeof data.confidence === 'number' ? data.confidence : 0.95;
 
-    // Task 3: Low confidence threshold check (< 0.6)
+    // Check low confidence threshold (< 0.6)
     if (confidence < LOW_CONFIDENCE_THRESHOLD) {
       lowConfidenceBanner.classList.remove('hidden');
       confidentResultContent.classList.add('hidden');
@@ -408,12 +690,13 @@
     // 3. Red Hazard Warning Banner
     if (data.damaged === true) {
       resDamageBanner.classList.remove('hidden');
-      resDamageDetail.textContent = data.damageNotes || 'swelling or structural leak detected';
+      const note = data.damageNotes ? data.damageNotes.trim() : 'swollen or damaged';
+      resDamageDetail.textContent = note.replace(/\.+$/, '');
     } else {
       resDamageBanner.classList.add('hidden');
     }
 
-    // 4. Instructions List (Numbered pills 1, 2, 3)
+    // 4. Instructions List
     resStepsList.innerHTML = '';
     const instructions = Array.isArray(data.instructions) && data.instructions.length > 0
       ? data.instructions
@@ -452,10 +735,11 @@
       btnFindDropoffs.textContent = 'Find drop-off near me';
     }
 
-    // 6. Impact counter increment
+    // 6. Impact counter increment & scan history persistence
     if (data.category === 'battery' || data.category === 'hazardous' || data.category === 'ewaste' || filter !== 'none') {
       incrementImpact();
       saveToHistory(data);
+      renderRecentScansHome();
     }
   }
 
@@ -475,8 +759,8 @@
         gpsAreaLabel.textContent = 'GPS on: [Your current location]';
       } catch (geoErr) {
         console.warn('Geolocation denied or timed out:', geoErr);
-        cachedUserLocation = null;
-        gpsAreaLabel.textContent = 'GPS off: USF / Tampa area';
+        cachedUserLocation = { ...DEFAULT_COORDS };
+        gpsAreaLabel.textContent = 'GPS off: Tampa / USF area';
       }
     }
 
@@ -489,7 +773,7 @@
 
       renderPlacesList();
 
-      // Step 3: Draw map via Person B's Watt2DoMap
+      // Step 3: Draw map via Watt2DoMap
       renderMapModule(cachedUserLocation, activeDropoffs);
     } catch (err) {
       console.error('Failed to retrieve drop-offs:', err);
@@ -508,7 +792,7 @@
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => reject(err),
-        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
     });
   }
@@ -548,9 +832,13 @@
 
     if (items.length === 0) {
       placesEmptyState.classList.remove('hidden');
+      renderMapModule(cachedUserLocation, []);
       return;
     }
     placesEmptyState.classList.add('hidden');
+
+    // Keep map pins in sync with the filtered list
+    renderMapModule(cachedUserLocation, items);
 
     items.forEach((item, index) => {
       const li = document.createElement('li');
@@ -590,6 +878,9 @@
       li.addEventListener('click', () => {
         document.querySelectorAll('.place-card-item').forEach(el => el.classList.remove('selected'));
         li.classList.add('selected');
+        if (window.Watt2DoMap && typeof window.Watt2DoMap.selectDropoff === 'function') {
+          window.Watt2DoMap.selectDropoff(index);
+        }
       });
 
       placesCardsList.appendChild(li);
@@ -637,8 +928,6 @@
     if (impactBigNumber) impactBigNumber.textContent = count.toString();
 
     // Battery Gauge blocks logic (Level 1..5)
-    // Level formula: Level = Math.floor(count / 5) + 1
-    // Gauge fills 1 to 5 blocks
     const level = Math.floor(count / 5) + 1;
     const progressInLevel = count % 5;
     const neededForNext = 5 - progressInLevel;
@@ -677,18 +966,108 @@
     try {
       const existing = JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '[]');
       existing.unshift({
-        item: item.item,
-        batteryType: item.batteryType,
-        date: new Date().toLocaleDateString(),
+        item: item.item || 'Battery',
+        batteryType: item.batteryType || item.category || 'Recyclable',
+        date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
       });
-      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(existing.slice(0, 10)));
+      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(existing.slice(0, 15)));
     } catch (e) {
       /* ignore */
     }
   }
 
+  function getHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function renderRecentScansHome() {
+    if (!homeRecentScans || !homeRecentList) return;
+    const items = getHistory();
+    if (items.length === 0) {
+      homeRecentScans.classList.add('hidden');
+      return;
+    }
+
+    homeRecentScans.classList.remove('hidden');
+    homeRecentList.innerHTML = '';
+
+    items.slice(0, 2).forEach((item) => {
+      const li = document.createElement('li');
+      li.className = 'recent-scan-pill-item';
+      li.innerHTML = `
+        <div class="recent-scan-left">
+          <span class="recent-item-name">${escapeHtml(item.item)}</span>
+          <span class="recent-item-meta">${escapeHtml(item.batteryType)} &bull; ${escapeHtml(item.date)}</span>
+        </div>
+        <span class="recent-item-chevron">&rsaquo;</span>
+      `;
+      li.addEventListener('click', () => {
+        populateHistoryModal();
+        openModal(historyModal);
+      });
+      homeRecentList.appendChild(li);
+    });
+  }
+
+  function populateHistoryModal() {
+    if (!historyItemsList) return;
+    const items = getHistory();
+    historyItemsList.innerHTML = '';
+
+    if (items.length === 0) {
+      if (historyEmpty) historyEmpty.classList.remove('hidden');
+      return;
+    }
+
+    if (historyEmpty) historyEmpty.classList.add('hidden');
+
+    items.forEach((item) => {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      li.innerHTML = `
+        <div class="history-item-left">
+          <span class="history-item-title">${escapeHtml(item.item)}</span>
+          <span class="history-item-meta">${escapeHtml(item.batteryType)} &bull; Scanned ${escapeHtml(item.date)}</span>
+        </div>
+        <span class="lime-outline-pill">Safely Diverted</span>
+      `;
+      historyItemsList.appendChild(li);
+    });
+  }
+
+  function populateSavedModal() {
+    if (!savedPlacesList) return;
+    savedPlacesList.innerHTML = `
+      <li class="history-item">
+        <div class="history-item-left">
+          <span class="history-item-title">USF Environmental Health & Safety</span>
+          <span class="history-item-meta">4202 E Fowler Ave, Tampa &bull; Accepts batteries & e-waste</span>
+        </div>
+        <span class="lime-outline-pill">⭐ USF</span>
+      </li>
+      <li class="history-item">
+        <div class="history-item-left">
+          <span class="history-item-title">The Home Depot - Fowler</span>
+          <span class="history-item-meta">1712 E Fowler Ave, Tampa &bull; Rechargeable battery bin</span>
+        </div>
+        <span class="subtle-pill">Retail</span>
+      </li>
+      <li class="history-item">
+        <div class="history-item-left">
+          <span class="history-item-title">Hillsborough Northwest Solid Waste Facility</span>
+          <span class="history-item-meta">8001 W Linebaugh Ave, Tampa &bull; Free county drop-off</span>
+        </div>
+        <span class="subtle-pill">County</span>
+      </li>
+    `;
+  }
+
   // ==========================================================================
-  // Watty AI Helper Chat (Gemini Assistant Stretch Feature)
+  // Watty AI Helper Chat (Gemini Assistant)
   // ==========================================================================
   function handleWattySubmit() {
     const text = wattyInput.value.trim();
@@ -698,17 +1077,25 @@
   }
 
   function sendWattyMessage(text) {
-    // Append User Bubble
     appendChatBubble(text, 'watty-user');
 
-    // Simulate smart thinking indicator
+    if (text.toLowerCase().includes('show drop-off') || text.toLowerCase().includes('drop off points')) {
+      const botBubble = appendChatBubble('Showing nearest drop-off locations...', 'watty-bot');
+      setTimeout(() => {
+        wattyModal.classList.add('hidden');
+        switchScreen('dropoffs');
+        loadDropoffPoints();
+      }, 500);
+      return;
+    }
+
     const thinkingBubble = appendChatBubble('Thinking...', 'watty-bot');
 
     setTimeout(() => {
       const answer = generateWattyResponse(text);
       thinkingBubble.textContent = answer;
       wattyMessagesContainer.scrollTop = wattyMessagesContainer.scrollHeight;
-    }, 450);
+    }, 400);
   }
 
   function appendChatBubble(text, className) {
@@ -724,19 +1111,19 @@
     const q = query.toLowerCase();
 
     if (q.includes('swollen') || q.includes('heat') || q.includes('fire') || q.includes('safe to store')) {
-      return 'Tape the terminals, keep it away from heat and combustibles, and store it in a non-flammable container like a metal tin or bucket of sand. Never recharge or puncture it!';
+      return 'Tape the terminals, keep it away from heat and combustibles, and store it in a non-flammable container like a metal tin or bucket of sand. Never recharge, puncture, or throw it into ordinary household trash!';
     }
     if (q.includes('drop-off') || q.includes('where') || q.includes('take') || q.includes('near')) {
-      return 'You can drop them off at certified retail bins like Best Buy, Home Depot, Batteries Plus, or Hillsborough County hazardous waste facilities. Tap "Find drop-off near me" on your scan to see driving directions!';
+      return 'You can take them to verified locations near USF like Best Buy, Home Depot, Batteries Plus, or Hillsborough County solid waste facilities. Tap "Show drop-off points" to view real-time pins on the map!';
     }
     if (q.includes('tape') || q.includes('terminal')) {
-      return 'Use non-conductive electrical tape or clear packing tape directly over the positive and negative ends. This stops accidental short circuits and sparks in transit!';
+      return 'Use non-conductive electrical tape or clear heavy packaging tape directly over the positive and negative ends. This prevents accidental shorts and sparks in garbage truck compactors!';
     }
     if (q.includes('alkaline') || q.includes('trash') || q.includes('bin')) {
-      return 'While single-use alkaline batteries are legally allowed in some municipal garbage, taking them to a recycling drop-off recovers valuable zinc and steel and prevents landfill leaching.';
+      return 'While standard single-use alkaline batteries can legally go in regular municipal trash in Hillsborough County, taking them to a recycling collection center recovers valuable zinc and steel and prevents landfill leaching.';
     }
 
-    return "I'm Watty! Keep dead batteries away from regular trash to prevent truck fires. Always tape exposed terminals and use our map to locate a certified drop-off!";
+    return "I'm Watty! Keep batteries out of regular garbage trucks to prevent catastrophic compactor fires. Always tape terminals, and use our Nearby Drop-offs map to safely recycle them!";
   }
 
   // ==========================================================================
@@ -759,6 +1146,16 @@
     if (errorToast) {
       errorToast.classList.add('hidden');
     }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   // Initialize on load

@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Watt2Do — Watt's Next? Watt2Do.</title>
   <meta name="description" content="AI battery identification, safety damage detection, and drop-off locator.">
+  <meta name="theme-color" content="#0d120e">
   <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-theme">
   <div class="mobile-frame">
     <!-- Top App Bar -->
     <header class="app-bar">
-      <div class="brand-lockup" id="brand-home-btn" role="button" tabindex="0">
+      <div class="brand-lockup" id="brand-home-btn" role="button" tabindex="0" aria-label="Go to home screen">
         <svg class="brand-battery-icon" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="1" y="1" width="22" height="14" rx="3" stroke="#C6F432" stroke-width="2"/>
           <path d="M25 5.5V10.5" stroke="#C6F432" stroke-width="2" stroke-linecap="round"/>
@@ -21,20 +21,27 @@
         <span class="brand-name">Watt2Do</span>
       </div>
 
-      <!-- Quick profile button on header -->
-      <button id="header-profile-btn" class="icon-avatar-btn" aria-label="Profile">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-      </button>
+      <div class="header-right-actions">
+        <!-- Quick theme toggle button -->
+        <button id="header-theme-btn" class="icon-avatar-btn" aria-label="Toggle theme" title="Toggle dark/light mode">
+          <span id="header-theme-icon">☀️</span>
+        </button>
+
+        <!-- Quick profile button on header -->
+        <button id="header-profile-btn" class="icon-avatar-btn" aria-label="Profile">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <!-- Error Toast Notification -->
     <div id="error-toast" class="error-toast hidden" role="alert">
       <span class="error-toast-icon">⚠️</span>
       <span id="error-toast-text" class="error-toast-text">Something went wrong.</span>
-      <button id="error-dismiss-btn" class="error-toast-close">&times;</button>
+      <button id="error-dismiss-btn" class="error-toast-close" aria-label="Dismiss error">&times;</button>
     </div>
 
     <!-- Hidden Camera & File Inputs -->
@@ -46,11 +53,11 @@
     <!-- ================================================================== -->
     <main class="content-viewport">
 
-      <!-- SCREEN 1: SCAN / HOME (Mockup Page 3 & 7) -->
+      <!-- SCREEN 1: SCAN / HOME (Mockup Page 3 & 7 & 10) -->
       <section id="view-scan" class="screen-view active">
         <div class="hero-intro">
-          <h1 class="hero-title">Got a dead battery?</h1>
-          <p class="hero-desc">
+          <h1 class="hero-title" id="home-greeting-title">Got a dead battery?</h1>
+          <p class="hero-desc" id="home-greeting-desc">
             Snap a photo. We tell you what it is, how to handle it safely, and where to drop it off.
           </p>
         </div>
@@ -74,6 +81,17 @@
           <button id="btn-gallery-upload" class="pill-btn-secondary">
             Upload from gallery
           </button>
+        </div>
+
+        <!-- Recent Scans Preview (Mockup Page 10) -->
+        <div id="home-recent-scans" class="home-recent-section hidden">
+          <div class="recent-header-row">
+            <span class="recent-section-label">Recent scans</span>
+            <button id="btn-see-all-history" class="btn-text-link-sm">View all &rsaquo;</button>
+          </div>
+          <ul id="home-recent-list" class="recent-scans-pill-list">
+            <!-- Rendered dynamically -->
+          </ul>
         </div>
 
         <!-- Bottom Impact Counter Pill -->
@@ -154,7 +172,7 @@
               </svg>
             </div>
             <div class="hazard-text-col">
-              <span class="hazard-bold-title">Damaged battery: <span id="res-damage-detail">swollen</span>.</span>
+              <span class="hazard-bold-title" id="res-damage-title-wrap">Damaged battery: <span id="res-damage-detail">swollen</span>.</span>
               <span class="hazard-sub-info">Keep away from heat. Fire risk.</span>
             </div>
           </div>
@@ -162,7 +180,6 @@
           <!-- Safety Instructions List (Numbered pills 1, 2, 3) -->
           <div class="steps-container">
             <ul id="res-steps-list" class="steps-pill-list">
-              <!-- Rendered dynamically -->
               <li class="step-pill-item">
                 <span class="step-num-circle">1</span>
                 <span class="step-text">Tape over the terminals</span>
@@ -178,7 +195,7 @@
             </ul>
           </div>
 
-          <!-- Regular Bin Safe Message (when dropoffFilter === "none") -->
+          <!-- Regular Bin Safe Notice (when dropoffFilter === "none") -->
           <div id="regular-bin-notice" class="regular-bin-box hidden">
             <span class="bin-icon">🗑️</span>
             <div class="bin-text-wrap">
@@ -215,7 +232,7 @@
               <line x1="1" y1="12" x2="4" y2="12"/>
               <line x1="20" y1="12" x2="23" y2="12"/>
             </svg>
-            <span id="gps-area-label" class="gps-label">GPS on: [USF / Tampa area]</span>
+            <span id="gps-area-label" class="gps-label">GPS on: Tampa area</span>
           </div>
           <button id="btn-update-location" class="gps-update-pill">Update</button>
         </div>
@@ -223,11 +240,11 @@
         <!-- Filter Chips Row (Open now, Batteries, E-waste) -->
         <div class="filter-chips-row">
           <button id="filter-chip-open" class="filter-chip active">Open now</button>
-          <button id="filter-chip-batteries" class="filter-chip">Batteries</button>
+          <button id="filter-chip-batteries" class="filter-chip active">Batteries</button>
           <button id="filter-chip-ewaste" class="filter-chip">E-waste</button>
         </div>
 
-        <!-- Map Container (Person B contract requires div#map with fixed height) -->
+        <!-- Map Container (Div#map is used by Person B's Watt2DoMap module) -->
         <div class="map-card-wrapper">
           <div id="map" class="styled-map-container" aria-label="Drop-off locations map"></div>
         </div>
@@ -238,7 +255,7 @@
             <span class="inline-spinner"></span> Locating certified centers...
           </div>
           <div id="places-empty-state" class="places-empty-state hidden">
-            <p>No facilities found nearby. Showing county hazardous waste drop-off.</p>
+            <p>No facilities found nearby. Showing verified county drop-off locations.</p>
           </div>
 
           <ul id="places-cards-list" class="places-cards-list">
@@ -246,7 +263,7 @@
           </ul>
         </div>
 
-        <!-- Bottom Impact Link -->
+        <!-- Bottom Action -->
         <div class="dropoffs-footer-actions">
           <button id="btn-dropoffs-done" class="pill-btn-primary btn-cta-main">
             View your impact
@@ -260,7 +277,7 @@
           <h2 class="section-title">Your impact</h2>
         </div>
 
-        <!-- Big Lime Counter -->
+        <!-- Big Counter -->
         <div class="impact-hero-stat">
           <span id="impact-big-number" class="impact-giant-num">0</span>
           <span class="impact-giant-desc">items kept out of landfill</span>
@@ -308,14 +325,14 @@
       <!-- SCREEN 6: PROFILE (Mockup Page 11 & 22) -->
       <section id="view-profile" class="screen-view">
         <div class="profile-header-card">
-          <div class="profile-big-avatar">
+          <div class="profile-big-avatar" id="btn-profile-edit" role="button" tabindex="0" title="Edit profile">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C6F432" stroke-width="1.8">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
-          <h2 class="profile-name">USF Eco Warrior</h2>
-          <p class="profile-email">warrior@usf.edu</p>
+          <h2 class="profile-name" id="profile-display-name">USF Eco Warrior</h2>
+          <p class="profile-email" id="profile-display-email">warrior@usf.edu</p>
         </div>
 
         <!-- Quick 2-Column Stats -->
@@ -346,7 +363,7 @@
           </button>
         </div>
 
-        <button class="sign-out-btn" id="btn-sign-out">Sign out</button>
+        <button class="sign-out-btn" id="btn-sign-out">Sign out / Switch user</button>
       </section>
 
     </main>
@@ -369,14 +386,14 @@
     </button>
 
     <!-- Watty Chat Drawer Modal -->
-    <div id="watty-modal" class="watty-modal-overlay hidden">
+    <div id="watty-modal" class="watty-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="watty-title-heading">
       <div class="watty-sheet">
         <!-- Watty Sheet Header -->
         <div class="watty-sheet-header">
           <div class="watty-identity">
             <div class="watty-mini-avatar">⚡</div>
             <div>
-              <h3 class="watty-title">Watty</h3>
+              <h3 id="watty-title-heading" class="watty-title">Watty</h3>
               <p class="watty-subtitle">Battery and recycling helper &bull; Gemini</p>
             </div>
           </div>
@@ -401,12 +418,168 @@
         <form id="watty-chat-form" class="watty-input-bar">
           <input type="text" id="watty-input" class="watty-text-input" placeholder="Ask Watty..." autocomplete="off">
           <button type="submit" class="watty-send-btn" aria-label="Send message">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </button>
         </form>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- MODAL SHEETS (LOCATION, HISTORY, SAVED, SETTINGS, JOIN/AUTH)      -->
+    <!-- ================================================================== -->
+
+    <!-- Location Modal (Mockup Page 13 & 17) -->
+    <div id="location-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="loc-modal-title">
+      <div class="modal-sheet">
+        <div class="modal-sheet-header">
+          <h3 id="loc-modal-title" class="modal-title">Find drop-off points near you</h3>
+          <button id="btn-close-location-modal" class="btn-sheet-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-sheet-body">
+          <div class="modal-radar-art">
+            <svg class="radar-circle-svg" width="90" height="90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="44" stroke="#C6F432" stroke-width="2" fill="none" opacity="0.3"/>
+              <circle cx="50" cy="50" r="30" stroke="#C6F432" stroke-width="2" fill="none" opacity="0.6"/>
+              <circle cx="50" cy="50" r="14" stroke="#C6F432" stroke-width="2" fill="none"/>
+              <circle cx="50" cy="50" r="5" fill="#C6F432"/>
+              <line x1="50" y1="6" x2="50" y2="24" stroke="#C6F432" stroke-width="2"/>
+              <line x1="50" y1="76" x2="50" y2="94" stroke="#C6F432" stroke-width="2"/>
+              <line x1="6" y1="50" x2="24" y2="50" stroke="#C6F432" stroke-width="2"/>
+              <line x1="76" y1="50" x2="94" y2="50" stroke="#C6F432" stroke-width="2"/>
+            </svg>
+          </div>
+          <p class="modal-desc">
+            Turn on GPS to see the closest places that take your item.
+          </p>
+          <div class="location-modal-actions">
+            <button id="btn-loc-use-gps" class="pill-btn-primary btn-cta-main">
+              Use my current location
+            </button>
+            <div class="zip-input-group">
+              <input type="text" id="loc-zip-input" class="pill-text-input" placeholder="Enter ZIP or address (e.g. 33620)" />
+              <button id="btn-loc-submit-zip" class="pill-btn-secondary">Go</button>
+            </div>
+            <button id="btn-loc-skip-tampa" class="btn-text-link">
+              Skip, show the Tampa area
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan History Modal (Mockup Page 10 & 11) -->
+    <div id="history-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
+      <div class="modal-sheet">
+        <div class="modal-sheet-header">
+          <h3 id="history-modal-title" class="modal-title">Scan History</h3>
+          <button id="btn-close-history-modal" class="btn-sheet-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-sheet-body">
+          <ul id="history-items-list" class="history-list">
+            <!-- Dynamically populated from localStorage -->
+          </ul>
+          <div id="history-empty" class="modal-empty-notice hidden">
+            <p>No scans recorded yet. Scan a battery or gadget to track its safe disposal here!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Drop-off Points Modal -->
+    <div id="saved-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="saved-modal-title">
+      <div class="modal-sheet">
+        <div class="modal-sheet-header">
+          <h3 id="saved-modal-title" class="modal-title">Saved Drop-off Points</h3>
+          <button id="btn-close-saved-modal" class="btn-sheet-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-sheet-body">
+          <ul id="saved-places-list" class="history-list">
+            <!-- Dynamically populated -->
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal (Theme Toggle & Options) -->
+    <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <div class="modal-sheet">
+        <div class="modal-sheet-header">
+          <h3 id="settings-modal-title" class="modal-title">Settings</h3>
+          <button id="btn-close-settings-modal" class="btn-sheet-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-sheet-body">
+          <div class="setting-item-row">
+            <div>
+              <div class="setting-item-label">Appearance</div>
+              <div class="setting-item-sub">Switch between Dark and Light mode</div>
+            </div>
+            <button id="btn-toggle-theme" class="pill-btn-secondary setting-btn">
+              🌙 Dark Mode
+            </button>
+          </div>
+          <div class="setting-item-row">
+            <div>
+              <div class="setting-item-label">Target Region</div>
+              <div class="setting-item-sub">Hillsborough County & USF Campus</div>
+            </div>
+            <span class="lime-outline-pill">Tampa Bay</span>
+          </div>
+          <div class="setting-item-row">
+            <div>
+              <div class="setting-item-label">Reset Local Data</div>
+              <div class="setting-item-sub">Clear impact counts and saved scan history</div>
+            </div>
+            <button id="btn-clear-storage" class="pill-btn-danger setting-btn">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Join Watt2Do / Profile Edit Modal (Mockup Page 9 & 15) -->
+    <div id="join-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="join-modal-title">
+      <div class="modal-sheet">
+        <div class="modal-sheet-header">
+          <div>
+            <h3 id="join-modal-title" class="modal-title">Join Watt2Do</h3>
+            <p class="modal-desc" style="margin: 0;">Save your scans and track your impact.</p>
+          </div>
+          <button id="btn-close-join-modal" class="btn-sheet-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-sheet-body">
+          <form id="join-account-form" class="auth-form">
+            <div class="auth-toggle-row">
+              <button type="button" id="auth-tab-create" class="auth-toggle-btn active">Create account</button>
+              <button type="button" id="auth-tab-signin" class="auth-toggle-btn">Sign in</button>
+            </div>
+            <div class="form-group" id="group-auth-name">
+              <label for="auth-input-name" class="form-label">Name</label>
+              <input type="text" id="auth-input-name" class="pill-text-input" placeholder="Your name" value="USF Eco Warrior" />
+            </div>
+            <div class="form-group">
+              <label for="auth-input-email" class="form-label">Email</label>
+              <input type="email" id="auth-input-email" class="pill-text-input" placeholder="you@example.com" value="warrior@usf.edu" />
+            </div>
+            <div class="form-group">
+              <label for="auth-input-pwd" class="form-label">Password</label>
+              <input type="password" id="auth-input-pwd" class="pill-text-input" placeholder="At least 8 characters" value="pass1234" />
+            </div>
+            <button type="submit" id="btn-auth-submit" class="pill-btn-primary btn-cta-main" style="margin-top: 10px;">
+              Save profile
+            </button>
+            <div class="auth-divider"><span>or</span></div>
+            <button type="button" id="btn-auth-google" class="pill-btn-secondary" style="width: 100%;">
+              Continue with Google
+            </button>
+            <button type="button" id="btn-auth-guest" class="btn-text-link" style="display: block; margin: 12px auto 0;">
+              Continue as guest
+            </button>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -425,9 +598,9 @@
   </div>
 
   <!-- Scripts -->
-  <!-- map.js is owned by Person B and exposes Watt2DoMap.show and Watt2DoMap.clear -->
+  <!-- map.js exposes Watt2DoMap.show and Watt2DoMap.clear -->
   <script src="/static/map.js"></script>
-  <!-- app.js is owned by Person C and drives UI states, camera input, and API calls -->
+  <!-- app.js drives UI states, camera input, and API calls -->
   <script src="/static/app.js"></script>
 </body>
 </html>
