@@ -157,8 +157,7 @@
             ? { lat: userLocation.lat, lng: userLocation.lng }
             : DEFAULT_CENTER;
 
-          if (!mapInstance || !container.contains(mapInstance.getDiv())) {
-            container.innerHTML = '';
+          if (!mapInstance) {
             mapInstance = new maps.Map(container, {
               center: centerCoords,
               zoom: 12,
@@ -252,80 +251,15 @@
           return mapInstance;
         })
         .catch((err) => {
-          console.warn('Google Maps API not available or no key configured, showing stylized vector map:', err.message || err);
-          Watt2DoMap.renderSvgFallback(container, userLocation, results);
+          console.error('Watt2DoMap initialization error:', err);
+          // Show friendly fallback message in container without breaking page
+          container.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:220px; background:#f3f4f6; color:#4b5563; padding:16px; text-align:center; border-radius:8px;">
+              <p style="font-weight:600; margin-bottom:8px;">Map view unavailable</p>
+              <p style="font-size:13px; max-width:300px; margin:0;">Nearby drop-offs are listed below. (Check Maps API key configuration).</p>
+            </div>
+          `;
         });
-    },
-
-    /**
-     * Render a stylized vector SVG map (Mockup Page 5 & 18) when Google Maps is offline/unkeyed.
-     */
-    renderSvgFallback(container, userLocation, results) {
-      const items = Array.isArray(results) ? results.slice(0, 5) : [];
-      const pinCoords = [
-        { x: 110, y: 150 },
-        { x: 280, y: 165 },
-        { x: 250, y: 220 },
-        { x: 80, y: 240 },
-        { x: 320, y: 90 },
-      ];
-
-      const pinsSvg = items.map((item, idx) => {
-        const c = pinCoords[idx] || { x: 150 + idx * 30, y: 150 + idx * 20 };
-        const num = idx + 1;
-        return `
-          <g class="svg-map-pin" id="svg-pin-${idx}" data-idx="${idx}" style="cursor: pointer;">
-            <circle cx="${c.x}" cy="${c.y}" r="14" fill="#C6F432" stroke="#161d16" stroke-width="2" />
-            <text x="${c.x}" y="${c.y + 4}" fill="#000000" font-size="12" font-family="-apple-system, sans-serif" font-weight="bold" text-anchor="middle">${num}</text>
-          </g>
-        `;
-      }).join('');
-
-      container.innerHTML = `
-        <div class="svg-map-fallback-view" aria-label="Interactive drop-offs preview map">
-          <svg class="svg-map-svg" viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
-            <!-- Grid Lines -->
-            <defs>
-              <pattern id="map-grid" width="80" height="80" patternUnits="userSpaceOnUse">
-                <path d="M 80 0 L 0 0 0 80" fill="none" stroke="currentColor" stroke-width="1" opacity="0.1" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#map-grid)" />
-
-            <!-- Stylized Road Line -->
-            <path d="M 20 180 L 170 145 L 230 160 L 380 200" fill="none" stroke="#3b5038" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-            <path d="M 170 145 L 200 40" fill="none" stroke="#3b5038" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
-
-            <!-- User Location (Blue Dot with Ripple) -->
-            <circle cx="200" cy="154" r="16" fill="rgba(37, 99, 235, 0.25)" />
-            <circle cx="200" cy="154" r="8" fill="#2563eb" stroke="#ffffff" stroke-width="2.5" />
-
-            <!-- Drop-off Pins -->
-            ${pinsSvg}
-          </svg>
-
-          <!-- Recenter Button -->
-          <button class="map-crosshair-btn" id="btn-recenter-svg-map" aria-label="Center location" title="Center location">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="7"/>
-              <line x1="12" y1="1" x2="12" y2="4"/>
-              <line x1="12" y1="20" x2="12" y2="23"/>
-              <line x1="1" y1="12" x2="4" y2="12"/>
-              <line x1="20" y1="12" x2="23" y2="12"/>
-            </svg>
-          </button>
-        </div>
-      `;
-
-      // Add click events to SVG pins
-      items.forEach((item, idx) => {
-        const pin = container.querySelector(`#svg-pin-${idx}`);
-        if (pin) {
-          pin.addEventListener('click', () => {
-            Watt2DoMap.selectDropoff(idx);
-          });
-        }
-      });
     },
 
     /**
@@ -353,27 +287,8 @@
      * Trigger info window for a specific drop-off result by index (0-based).
      */
     selectDropoff(index) {
-      if (resultMarkers[index] && global.google && global.google.maps && mapInstance) {
-        const marker = resultMarkers[index];
-        mapInstance.panTo(marker.getPosition());
-        mapInstance.setZoom(15);
-        global.google.maps.event.trigger(marker, 'click');
-      }
-
-      // Highlight SVG pin if fallback map is active
-      const allPins = document.querySelectorAll('.svg-map-pin circle, .svg-pin circle');
-      allPins.forEach((circle) => {
-        circle.setAttribute('fill', 'var(--ac, #C6F432)');
-        circle.setAttribute('stroke', 'var(--ol, #161d16)');
-        circle.setAttribute('r', '13');
-      });
-
-      const activePin = document.querySelector(`#svg-pin-${index} circle`);
-      if (activePin) {
-        activePin.setAttribute('fill', '#ffffff');
-        activePin.setAttribute('stroke', 'var(--ac, #C6F432)');
-        activePin.setAttribute('r', '18');
-        activePin.setAttribute('stroke-width', '3');
+      if (resultMarkers[index] && global.google && global.google.maps) {
+        global.google.maps.event.trigger(resultMarkers[index], 'click');
       }
     },
   };
