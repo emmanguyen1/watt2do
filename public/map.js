@@ -157,7 +157,8 @@
             ? { lat: userLocation.lat, lng: userLocation.lng }
             : DEFAULT_CENTER;
 
-          if (!mapInstance) {
+          if (!mapInstance || !container.contains(mapInstance.getDiv())) {
+            container.innerHTML = '';
             mapInstance = new maps.Map(container, {
               center: centerCoords,
               zoom: 12,
@@ -352,21 +353,27 @@
      * Trigger info window for a specific drop-off result by index (0-based).
      */
     selectDropoff(index) {
-      if (resultMarkers[index] && global.google && global.google.maps) {
-        global.google.maps.event.trigger(resultMarkers[index], 'click');
+      if (resultMarkers[index] && global.google && global.google.maps && mapInstance) {
+        const marker = resultMarkers[index];
+        mapInstance.panTo(marker.getPosition());
+        mapInstance.setZoom(15);
+        global.google.maps.event.trigger(marker, 'click');
       }
 
       // Highlight SVG pin if fallback map is active
-      const allPins = document.querySelectorAll('.svg-map-pin circle');
+      const allPins = document.querySelectorAll('.svg-map-pin circle, .svg-pin circle');
       allPins.forEach((circle) => {
-        circle.setAttribute('fill', '#C6F432');
-        circle.setAttribute('r', '14');
+        circle.setAttribute('fill', 'var(--ac, #C6F432)');
+        circle.setAttribute('stroke', 'var(--ol, #161d16)');
+        circle.setAttribute('r', '13');
       });
 
       const activePin = document.querySelector(`#svg-pin-${index} circle`);
       if (activePin) {
         activePin.setAttribute('fill', '#ffffff');
-        activePin.setAttribute('r', '17');
+        activePin.setAttribute('stroke', 'var(--ac, #C6F432)');
+        activePin.setAttribute('r', '18');
+        activePin.setAttribute('stroke-width', '3');
       }
     },
   };
