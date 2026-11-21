@@ -38,6 +38,60 @@ def create_app():
     def index():
         return send_from_directory(app.static_folder, "index.html")
 
+    @app.get("/<path:filename>")
+    def root_static(filename):
+        file_path = ROOT / "static" / filename
+        if file_path.is_file():
+            return send_from_directory(app.static_folder, filename)
+        return jsonify(ok=False, error="Not found"), 404
+
+    @app.post("/api/chat")
+    def api_chat():
+        data = request.get_json(silent=True) or {}
+        messages = data.get("messages", [])
+        text = " ".join(messages).lower()
+        if any(w in text for w in ["smoke", "fire", "burning", "hot"]):
+            return jsonify({
+                "ok": True,
+                "title": "Emergency Battery Hazard",
+                "steps": [
+                    "If there is smoke or fire, move away immediately and call 911.",
+                    "Store compromised batteries outdoors in sand or a fireproof container."
+                ],
+                "phone": "911",
+                "showDropoffs": False
+            })
+        if any(w in text for w in ["swollen", "leak", "damage", "punctur", "bloat"]):
+            return jsonify({
+                "ok": True,
+                "title": "Damaged Lithium Cell Safety",
+                "steps": [
+                    "Stop charging or using swollen batteries immediately.",
+                    "Tape over all metal terminals with electrical tape.",
+                    "Bring to a Hillsborough County Household Hazardous Waste facility."
+                ],
+                "showDropoffs": True
+            })
+        if any(w in text for w in ["alkaline", "aa", "aaa", "c cell", "d cell", "9v"]):
+            return jsonify({
+                "ok": True,
+                "title": "Alkaline Battery Disposal",
+                "steps": [
+                    "Alkaline batteries can be disposed in municipal trash or specialized drop-offs.",
+                    "Always tape 9V terminals before discarding."
+                ],
+                "showDropoffs": True
+            })
+        return jsonify({
+            "ok": True,
+            "title": "Watty AI Assistant",
+            "steps": [
+                "I can help identify batteries and find certified recycling facilities near you in Hillsborough County.",
+                "Ask me about any battery type or safety question!"
+            ],
+            "showDropoffs": True
+        })
+
     @app.get("/api/health")
     def health():
         return jsonify(ok=True)
