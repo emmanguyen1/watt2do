@@ -98,21 +98,29 @@ def create_app():
 
     @app.post("/api/scan")
     def scan():
-        if request.mimetype != "multipart/form-data":
-            raise ScanError("Upload a JPEG or PNG using the image field.", 400)
-        files = request.files.getlist("image")
-        if len(files) != 1 or len(request.files) != 1 or not files[0].filename:
-            raise ScanError("Provide one photo in the image field.", 400)
-        photo = files[0]
-        image = photo.read(MAX_IMAGE_BYTES + 1)
+        content_type = request.content_type or ""
+        if "multipart/form-data" in content_type:
+            files = request.files.getlist("image")
+            if not files or not files[0].filename:
+                raise ScanError("Provide one photo in the image field.", 400)
+            photo = files[0]
+            image = photo.read(MAX_IMAGE_BYTES + 1)
+            image_type = photo.mimetype
+        elif any(t in content_type for t in ["image/jpeg", "image/png", "image/webp", "application/octet-stream"]):
+            image = request.get_data()
+            image_type = "image/jpeg"
+            if image.startswith(b"\x89PNG\r\n\x1a\n"):
+                image_type = "image/png"
+            elif image.startswith(b"RIFF") and b"WEBP" in image[:16]:
+                image_type = "image/webp"
+            elif image.startswith(b"\xff\xd8\xff"):
+                image_type = "image/jpeg"
+        else:
+            raise ScanError("Choose a JPEG, PNG, or WebP photo.", 415)
+
         if len(image) > MAX_IMAGE_BYTES:
             raise ScanError("The photo is too large. Use an image under 5 MB.", 413)
-        if image.startswith(b"\xff\xd8\xff") and photo.mimetype == "image/jpeg":
-            image_type = "image/jpeg"
-        elif image.startswith(b"\x89PNG\r\n\x1a\n") and photo.mimetype == "image/png":
-            image_type = "image/png"
-        else:
-            raise ScanError("Choose a JPEG or PNG photo.", 415)
+
         if os.getenv("MOCK_SCAN") == "1":
             with mock_lock:
                 return jsonify(next(mock_results))
