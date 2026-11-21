@@ -14,7 +14,8 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 ### 1. 🔍 Zero-Click Automatic AI Vision Scanning (`vision.py`)
 - **Hands-Free Detection:** Automatically activates a continuous scanning loop that samples and analyzes camera frames without requiring manual "Capture" clicks.
-- **Regex-Verified Chemistry Extraction:** Parses printed casing markings (e.g., `CR2032`, `LR03`/`LR6`, `Li-ion`, `Li-polymer`, `Ni-MH`, `VRLA`/`Pb`) to prevent incorrect disposal assumptions based solely on shape.
+- **Instant Scan Trigger ("⚡ Scan Now"):** Dedicated on-screen trigger button allowing users to immediately scan the active camera frame without waiting for timer cycles.
+- **Expanded Chemistry & Markings Extraction:** Recognizes all modern chemistries including pouch cells, vape cells (`18650`, `21700`), coin cells (`CR2032`, `LR44`, `A23`, `AG13`), household cells (`Coppertop`, `MN1500`, `LR6`), tool batteries (`18V`, `20V MAX`), and lead-acid (`AGM`, `GEL`, `SLA`).
 - **Sub-Second Speed (~1.0s Analysis):** Optimized with Gemini `thinkingConfig: {"thinkingLevel": "LOW"}` and balanced token limits to deliver near-instant scan responses.
 - **Center Macro-Crop Processing:** Isolates the center focus zone to maximize OCR legibility on small printed battery text while keeping upload payloads lean (~100 KB).
 
@@ -23,8 +24,10 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 - **Verified Safe ("Intact and cool"):** If no physical defects are detected, the app certifies the battery as **Intact and cool**, routing the user directly to eligible drop-off locations.
 - **Hazard & Damage Alerts:** If swelling, corrosion, cracks, or punctures are identified, the system immediately surfaces safety warnings, county fire protocols, and contact numbers (Hillsborough County Solid Waste: `(813) 272-5680`).
 
-### 3. 📷 High-Clarity 1080p HUD Camera Viewfinder
+### 3. 📷 High-Clarity 1080p HUD Camera Viewfinder & Controls
 - **Full HD Sensor Mode:** Requests 1080p streams (`1920x1080` ideal) to initialize macro sensors on modern smartphones and webcams.
+- **Macro Zoom Toggle [ 1x | 2x Macro ]:** One-tap macro zoom switch that magnifies the center reticle (up to 48% center crop) for tiny battery text and markings.
+- **Camera Flip Toggle (`🔄`):** Switch effortlessly between rear (`environment`) and front/webcam (`user`) sensors.
 - **Continuous Macro Autofocus & Exposure:** Automatically configures continuous focus, auto-exposure, and white-balance capabilities via `MediaTrackCapabilities`.
 - **Hardware Torch / Flashlight Toggle:** Automatically detects flashlight hardware (`caps.torch`) and provides an on-screen toggle for scanning in dim environments.
 - **Mobile Camera Fallbacks:** Includes dedicated native device camera capture (`capture="environment"`) and gallery photo uploads.
