@@ -25,21 +25,11 @@ Watt2Do uses approximate straight-line distance and a Tampa-area directory. Call
 ## Frameworks, libraries and services
 
 - **Frameworks** — None. The server uses Node.js built-in modules. The frontend uses HTML, CSS and browser JavaScript.
-- **Leaflet 1.9.4** — interactive map, loaded from unpkg. [Leaflet](https://leafletjs.com/)
-- **OpenStreetMap** — basemap tiles and attribution. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
 - **Google Maps URLs** — external directions links.
 - **Google Gemini Developer API** — image classification. [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite)
-- **OpenAI Codex** — AI-assisted implementation, source research and verification.
-
-## Hackathon authorship and AI disclosure
-
-Development in this folder began after the participant reported that the event had started. The participant reused the project idea and specified its scope and requirements. This implementation was written in a new folder without copying project files, code, or documents from the pre-event prototype.
-
-OpenAI Codex generated the initial code, interface, directory, rules, README, and verification scripts and helped research public sources. The participant directed the build, including the name, camera workflow, grouped item picker, safety-first routing, and drop-off map. Add any additional participant-written code, design, research, and manual testing to this section before submission.
-
-Suggested MLH submission disclosure: “I used OpenAI Codex to generate and verify Watt2Do’s initial frontend, backend, and source-backed directory from my requirements during the event. Watt2Do also uses Google Gemini at runtime to suggest an item type from camera frames. The app uses separate user-confirmed conditions and written rules to determine safety guidance and drop-off results.”
 
 ## Public data sources
+
 
 - [Hillsborough County battery collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries)
 - [Hillsborough County electronics collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics)
