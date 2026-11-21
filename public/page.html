@@ -222,36 +222,45 @@ const V = {
         </p>
 
         <!-- Expanded Camera Detection HUD Viewfinder -->
-        <div style="position:relative;width:100%;max-width:540px;min-height:340px;height:360px;margin:0 auto 16px;border-radius:24px;border:3px solid var(--ol);display:flex;align-items:center;justify-content:center;background:#050806;box-shadow:0 0 35px rgba(198,244,50,0.18);overflow:hidden">
-          <video id="camera" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;display:block"></video>
+        <div style="position:relative;width:100%;max-width:560px;min-height:360px;height:380px;margin:0 auto 16px;border-radius:24px;border:3px solid var(--ol);display:flex;align-items:center;justify-content:center;background:#050806;box-shadow:0 0 35px rgba(198,244,50,0.2);overflow:hidden">
+          <video id="camera" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.05) brightness(1.02);image-rendering:-webkit-optimize-contrast"></video>
           <div id="cam-placeholder" style="color:var(--ol);display:none;flex-direction:column;align-items:center;gap:8px">
             ${IC.cam}
-            <span class="sm" style="font-weight:700">Starting automatic camera…</span>
+            <span class="sm" style="font-weight:700">Starting 1080p HD camera…</span>
           </div>
 
           <!-- Futuristic HUD Corner Targeting Brackets -->
-          <div style="position:absolute;top:16px;left:16px;width:28px;height:28px;border-top:3px solid var(--ol);border-left:3px solid var(--ol);border-top-left-radius:8px;pointer-events:none"></div>
-          <div style="position:absolute;top:16px;right:16px;width:28px;height:28px;border-top:3px solid var(--ol);border-right:3px solid var(--ol);border-top-right-radius:8px;pointer-events:none"></div>
-          <div style="position:absolute;bottom:16px;left:16px;width:28px;height:28px;border-bottom:3px solid var(--ol);border-left:3px solid var(--ol);border-bottom-left-radius:8px;pointer-events:none"></div>
-          <div style="position:absolute;bottom:16px;right:16px;width:28px;height:28px;border-bottom:3px solid var(--ol);border-right:3px solid var(--ol);border-bottom-right-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;top:16px;left:16px;width:30px;height:30px;border-top:3px solid var(--ol);border-left:3px solid var(--ol);border-top-left-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;top:16px;right:16px;width:30px;height:30px;border-top:3px solid var(--ol);border-right:3px solid var(--ol);border-top-right-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;bottom:16px;left:16px;width:30px;height:30px;border-bottom:3px solid var(--ol);border-left:3px solid var(--ol);border-bottom-left-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;bottom:16px;right:16px;width:30px;height:30px;border-bottom:3px solid var(--ol);border-right:3px solid var(--ol);border-bottom-right-radius:8px;pointer-events:none"></div>
 
-          <!-- Central Target Crosshairs -->
-          <div style="position:absolute;width:120px;height:120px;border:1px dashed rgba(198,244,50,0.4);border-radius:18px;pointer-events:none;display:flex;align-items:center;justify-content:center">
-            <div style="width:8px;height:8px;border-radius:50%;background:rgba(198,244,50,0.6)"></div>
+          <!-- Macro Focus Box & Reticle -->
+          <div style="position:absolute;width:160px;height:120px;border:2px dashed rgba(198,244,50,0.55);border-radius:18px;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--ol)"></div>
+            <span style="font-size:10px;font-weight:700;color:var(--ol);letter-spacing:1px;text-transform:uppercase">Focus Area</span>
           </div>
 
           <!-- Animated Laser Sweep -->
           <div class="scan-sweep" style="position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(198,244,50,0.22) 50%,transparent);animation:sweep 2.4s ease-in-out infinite;pointer-events:none"></div>
 
+          <!-- Top HUD Badges -->
+          <div style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;z-index:2">
+            <span style="background:rgba(14,20,16,0.85);backdrop-filter:blur(6px);border:1px solid rgba(198,244,50,0.4);border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--ol)">1080p HD Macro</span>
+          </div>
+
+          <!-- Torch Button (Shown if hardware supports flash) -->
+          <button id="btn-torch-toggle" data-a="torch-toggle" class="ib sm" style="position:absolute;top:14px;right:14px;background:rgba(14,20,16,0.85);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.25);border-radius:50%;width:34px;height:34px;display:none;align-items:center;justify-content:center;color:#fff;z-index:2" title="Toggle Flash">⚡</button>
+
           <!-- Floating Live Detection Badge -->
           <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(14,20,16,0.85);backdrop-filter:blur(8px);border-radius:20px;border:1px solid rgba(198,244,50,0.4);font-size:13px;font-weight:600;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:2">
             <span style="width:8px;height:8px;border-radius:50%;background:var(--ol);animation:pulse 1.2s infinite"></span>
-            <span id="cam-badge-text">Automatic AI Detection Active</span>
+            <span id="cam-badge-text">Continuous Autofocus Active</span>
           </div>
 
           <!-- Real-Time Prompt Message Overlay -->
           <div id="cam-status-msg" style="position:absolute;bottom:14px;left:14px;right:14px;padding:10px 16px;background:rgba(14,20,16,0.88);backdrop-filter:blur(10px);border-radius:14px;font-size:13px;color:#fff;text-align:center;border:1px solid rgba(255,255,255,0.1);z-index:2">
-            Hold battery steady in frame — identifying automatically…
+            Hold battery steady in focus box — auto-reading chemistry…
           </div>
         </div>
 
@@ -697,15 +706,28 @@ let scanAbortController = null;
 function grabFrame(closeUp = false) {
   const vid = $('#camera');
   if (!vid || !cameraStream) return Promise.resolve(null);
-  const portion = closeUp ? 0.75 : 1;
-  const width = (vid.videoWidth || 640) * portion;
-  const height = (vid.videoHeight || 480) * portion;
+  const vWidth = vid.videoWidth || 1920;
+  const vHeight = vid.videoHeight || 1080;
+  // Center crop: 65% for macro focus on printed battery text, 90% for standard framing
+  const portion = closeUp ? 0.65 : 0.90;
+  const cropW = vWidth * portion;
+  const cropH = vHeight * portion;
+  const cropX = (vWidth - cropW) / 2;
+  const cropY = (vHeight - cropH) / 2;
+
   const canvas = document.createElement('canvas');
-  canvas.width = Math.min(1280, width);
-  canvas.height = Math.round(height * (canvas.width / width));
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(vid, (vid.videoWidth - width) / 2, (vid.videoHeight - height) / 2, width, height, 0, 0, canvas.width, canvas.height);
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+  // High-clarity 1080p target resolution (up to 1920px max dimension)
+  const maxDim = 1920;
+  const scale = Math.min(1.0, maxDim / Math.max(cropW, cropH));
+  canvas.width = Math.round(cropW * scale);
+  canvas.height = Math.round(cropH * scale);
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(vid, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+  // High quality 94% JPEG encoding so fine markings and chemistry symbols are razor sharp
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.94));
 }
 
 async function handleScanSuccess(blob, data) {
@@ -778,6 +800,23 @@ async function handleScanSuccess(blob, data) {
   render();
 }
 
+let torchActive = false;
+
+async function toggleTorch() {
+  if (!cameraStream) return;
+  const track = cameraStream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities) return;
+  const caps = track.getCapabilities();
+  if (!caps.torch) return;
+  try {
+    torchActive = !torchActive;
+    await track.applyConstraints({ advanced: [{ torch: torchActive }] });
+    const btn = $('#btn-torch-toggle');
+    if (btn) btn.style.background = torchActive ? 'var(--ac)' : 'rgba(14,20,16,0.85)';
+    if (btn) btn.style.color = torchActive ? 'var(--ot)' : '#fff';
+  } catch(e) {}
+}
+
 async function startCamera() {
   const vid = $('#camera');
   const placeholder = $('#cam-placeholder');
@@ -796,10 +835,15 @@ async function startCamera() {
   const signal = scanAbortController.signal;
 
   try {
-    if (msg) msg.textContent = 'Activating camera…';
+    if (msg) msg.textContent = 'Activating 1080p HD camera…';
     cameraStream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 },
+        frameRate: { ideal: 30, min: 15 }
+      }
     });
     if (signal.aborted) {
       cameraStream.getTracks().forEach(t => t.stop());
@@ -812,17 +856,34 @@ async function startCamera() {
     }
     if (placeholder) placeholder.style.display = 'none';
 
+    // Apply continuous macro autofocus and auto-exposure if supported
+    const track = cameraStream.getVideoTracks()[0];
+    if (track && track.getCapabilities) {
+      try {
+        const caps = track.getCapabilities();
+        const advanced = [];
+        if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.push({ focusMode: 'continuous' });
+        if (caps.exposureMode && caps.exposureMode.includes('continuous')) advanced.push({ exposureMode: 'continuous' });
+        if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes('continuous')) advanced.push({ whiteBalanceMode: 'continuous' });
+        if (advanced.length) await track.applyConstraints({ advanced }).catch(() => {});
+        if (caps.torch) {
+          const torchBtn = $('#btn-torch-toggle');
+          if (torchBtn) torchBtn.style.display = 'inline-flex';
+        }
+      } catch(e) {}
+    }
+
     // Automatic multi-frame detection loop using vision.py
     for (let i = 0; i < 6 && !signal.aborted; i++) {
       if (i === 0) {
-        if (msg) msg.textContent = 'Hold battery label steady in frame…';
+        if (msg) msg.textContent = 'Hold battery label steady in focus box…';
         await new Promise(r => setTimeout(r, 1600));
       } else {
-        if (msg) msg.textContent = 'Detecting battery label automatically…';
+        if (msg) msg.textContent = 'Reading battery label with macro focus…';
         await new Promise(r => setTimeout(r, 2000));
       }
       if (signal.aborted || !cameraStream) return;
-      if (msg) msg.textContent = 'Recognizing battery with Gemini Vision AI…';
+      if (msg) msg.textContent = 'Analyzing high-res frame with Gemini Vision…';
       if (badge) badge.textContent = 'Analyzing frame…';
 
       const frameBlob = await grabFrame(i % 2 === 1);
@@ -846,15 +907,15 @@ async function startCamera() {
       } catch (e) {
         if (signal.aborted) return;
       }
-      if (badge) badge.textContent = 'Automatic AI Detection Active';
+      if (badge) badge.textContent = 'Continuous Autofocus Active';
     }
     if (!signal.aborted && msg) {
-      msg.textContent = 'Hold steady or click "Upload photo from device" below.';
+      msg.textContent = 'Hold steady or click "📸 Snap with device camera" below.';
     }
   } catch (err) {
     if (!signal.aborted && msg) {
       msg.textContent = err.name === 'NotAllowedError'
-        ? 'Camera permission denied. Upload a photo below.'
+        ? 'Camera permission denied. Click Snap with device camera below.'
         : 'Could not access camera: ' + err.message;
       if (placeholder) placeholder.style.display = 'flex';
       if (vid) vid.style.display = 'none';
@@ -863,6 +924,7 @@ async function startCamera() {
 }
 
 function stopCamera() {
+  torchActive = false;
   if (scanAbortController) {
     scanAbortController.abort();
     scanAbortController = null;
@@ -874,6 +936,8 @@ function stopCamera() {
   const vid = $('#camera');
   const placeholder = $('#cam-placeholder');
   const msg = $('#cam-status-msg');
+  const torchBtn = $('#btn-torch-toggle');
+  if (torchBtn) torchBtn.style.display = 'none';
 
   if (vid) {
     vid.pause();
@@ -1129,6 +1193,7 @@ document.addEventListener('click', e => {
       if (btn) btn.textContent = 'Pause camera';
     }
   }
+  else if (a === 'torch-toggle') { toggleTorch(); }
   else if (a === 'phone-cam') { $('#fi').click(); }
   else if (a === 'upload') { $('#fi-file').click(); }
   else if (a === 'go') { go(v); }
