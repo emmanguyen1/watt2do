@@ -2,7 +2,13 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {advice,conditions,groups,labels,locations,zipCenters} from './directory.mjs';
 
+import {handleAccount} from './account.mjs';
+
+import {chat} from './chat.mjs';
+
 const assets = {
+  '/watty.mjs':['watty.mjs','text/javascript'],
+  '/account.mjs':['account.mjs','text/javascript'],
   '/':['page.html','text/html'],
   '/screen.css':['screen.css','text/css'],
   '/screen.mjs':['screen.mjs','text/javascript'],
@@ -127,10 +133,27 @@ export const server = createServer(async (request,response) => {
       response.writeHead(200,{'Content-Type':type + '; charset=utf-8','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});
       return response.end(content);
     }
+    if (path === '/api/account' && ['GET','POST'].includes(request.method)) {
+      return await handleAccount(request,response,{readBody,respond,RequestError});
+    }
     if (request.method === 'GET' && path === '/api/maps-config') {
       return respond(response,200,{ok:true,mapsKey:process.env.GOOGLE_MAPS_BROWSER_KEY?.trim() || ''});
     }
     if (request.method === 'GET' && path === '/api/options') return respond(response,200,{groups,conditions,vision:Boolean(key)});
+    if (request.method === 'POST' && path === '/api/chat') {
+      let input;
+      try { input = JSON.parse((await readBody(request,16_384)).toString('utf8')); }
+      catch (error) {
+        if (error instanceof RequestError) throw error;
+        throw new RequestError(400,'Enter a question for Watty.');
+      }
+      const messages = input?.messages;
+      if (!Array.isArray(messages) || messages.length < 1 || messages.length > 4 ||
+          !messages.every(message => typeof message === 'string' && message.trim() && message.length <= 500)) {
+        throw new RequestError(400,'Enter a question up to 500 characters.');
+      }
+      return respond(response,200,await chat(messages,key,model));
+    }
     if (request.method === 'POST' && path === '/api/plan') return respond(response,200,await plan(request));
     if (request.method === 'POST' && path === '/api/scan') return respond(response,200,await scan(request));
     if (request.method === 'GET' && path === '/api/dropoffs') {

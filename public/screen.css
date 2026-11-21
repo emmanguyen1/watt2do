@@ -104,3 +104,16 @@ footer { display:flex; flex-wrap:wrap; gap:1rem; padding:1.5rem 0 2rem; color:va
   .hero,.fields { grid-template-columns:1fr; }
   .graphic { display:none; }
 }
+
+#watty-launcher, #watty-panel { position:fixed; right:max(1rem,env(safe-area-inset-right)); z-index:10; }
+#watty-launcher { bottom:max(1rem,env(safe-area-inset-bottom)); box-shadow:0 4px 18px #132a2933; }
+#watty-panel { width:min(25rem,calc(100% - 2rem)); height:min(31rem,calc(100dvh - 6rem)); bottom:4.5rem; display:grid; grid-template-rows:auto minmax(0,1fr) auto; background:#fff; border:1px solid var(--border); border-radius:1rem; box-shadow:0 8px 32px #132a2933; }
+#watty-panel header, #watty-form { display:flex; align-items:center; gap:.5rem; padding:.75rem; }
+#watty-panel header { border-bottom:1px solid var(--border); justify-content:space-between; }
+#watty-title, #watty-log p { margin:0; }
+#watty-log { overflow:auto; padding:.75rem; display:grid; align-content:start; gap:.65rem; overflow-wrap:anywhere; }
+#watty-log > div { display:grid; gap:.4rem; }
+#watty-log a + strong, #watty-log a + a { margin-top:.2rem; }
+.watty-user { background:#eaf3e1; padding:.5rem .7rem; border-radius:.65rem; }
+#watty-form { border-top:1px solid var(--border); }
+#watty-input { flex:1; min-width:0; font:inherit; padding:.5rem; border:1px solid var(--border); border-radius:.5rem; }
