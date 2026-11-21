@@ -104,8 +104,28 @@ welcome(){const c=M.tab==='create';return `<div class="g" style="align-items:cen
 <div class="cd"><div class="tabs"><button data-a="tab" data-v="create" aria-pressed="${c}">Create account</button><button data-a="tab" data-v="in" aria-pressed="${!c}">Sign in</button></div>
 <form id="af">${c?'<label>Name<input class="in" name="n" required placeholder="Your name"></label>':''}<label>Email<input class="in" name="e" type="email" required placeholder="you@example.com"></label><label>Password<input class="in" name="p" type="password" required minlength="8" placeholder="At least 8 characters"></label>${M.err?`<p class="bn" role="alert">${M.err}</p>`:''}<button class="cta" style="width:100%">${c?'Create account':'Sign in'}</button></form>
 <p class="m sm" style="text-align:center;margin:12px 0 4px">Demo accounts are saved only in this browser.</p><button class="ch" style="width:100%" data-a="guest">Continue as guest</button></div></div>`},
-home(){const h=S.hist.slice(0,3);return `<h1>Hi, ${esc(S.user.name)}</h1><p class="m">What do you want to do?</p><div class="g"><button class="opt p" data-a="scan">${IC.cam}<span><b style="color:var(--ol)">Scan an item</b><span class="m">Identify it and get safe disposal steps.</span></span></button><button class="opt" data-a="go" data-v="find">${IC.pin}<span><b>Find drop-off points</b><span class="m">Just see where to take it near you.</span></span></button></div>
+home(){const h=S.hist.slice(0,3);return `<h1>Hi, ${esc(S.user.name)}</h1><p class="m">What do you want to do?</p><div class="g"><button class="opt p" data-a="scan">${IC.cam}<span><b style="color:var(--ol)">Scan an item</b><span class="m">Identify it and get safe disposal steps.</span></span></button><button class="opt" data-a="go" data-v="find">${IC.pin}<span><b>Find drop-off points</b><span class="m">Just see where to take it near you.</span></span></button><button class="opt" data-a="go" data-v="manual">${IC.bolt}<span><b>Choose manually</b><span class="m">Pick type and condition from the county catalog.</span></span></button></div>
 <div class="cd" style="margin-top:14px"><b>${S.count}</b> items kept out of landfill</div><h2 style="margin-top:22px;font-size:20px">Recent scans</h2>${h.length?h.map(x=>`<div class="cd" style="margin-bottom:10px"><b>${x.item}</b><div class="m sm">${x.type||'Not a battery'} · ${x.d}</div></div>`).join(''):'<p class="m">No scans yet. Try your first one.</p>'}`},
+manual(){return `<h2>Manual item selection</h2><p class="m">Select an item and condition to see Hillsborough County safety instructions and nearby drop-offs.</p>
+<form id="mf" class="cd" style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+<label>Item type<select class="in" id="m-type" required>
+<optgroup label="Loose batteries"><option value="rechargeable" selected>Rechargeable battery or tool pack</option><option value="household">Standard household battery</option><option value="primary">Disposable lithium battery</option><option value="button">Button or coin cell</option><option value="starter">Lead-acid vehicle battery</option><option value="unknownBattery">Battery type unsure</option></optgroup>
+<optgroup label="Portable electronics"><option value="phone">Phone</option><option value="tablet">Tablet</option><option value="watch">Smartwatch</option><option value="laptop">Laptop</option><option value="power">Power bank</option><option value="headphones">Headphones or earbuds</option><option value="camera">Digital camera</option></optgroup>
+<optgroup label="Computers and office"><option value="desktop">Desktop computer</option><option value="monitor">Monitor</option><option value="peripherals">Keyboard or mouse</option><option value="router">Router</option><option value="printer">Printer</option><option value="scanner">Document scanner</option><option value="cable">Plug-in charger or cable</option></optgroup>
+<optgroup label="Home and gaming"><option value="tv">TV</option><option value="speaker">Speaker or soundbar</option><option value="console">Game console</option><option value="controller">Game controller</option></optgroup>
+</select></label>
+<label>Condition<select class="in" id="m-cond" required>
+<option value="intact" selected>Intact and cool</option>
+<option value="damaged">Damaged (cracked / crushed / dented)</option>
+<option value="swollen">Swollen (bulging / expanded cell)</option>
+<option value="leaking">Leaking</option>
+<option value="hot">Hot, smoking or burning</option>
+<option value="unsure">Condition unsure</option>
+</select></label>
+<label>Location (Tampa ZIP or area)<input class="in" id="m-area" placeholder="Tampa, 33602, 33612, 33620..." value="${M.F.u?'your location':'Tampa'}"></label>
+<button class="cta" type="submit" style="margin-top:6px">Show guidance and drop-offs</button>
+</form>
+<div style="margin-top:14px"><button class="ch" data-a="go" data-v="home">&larr; Back to home</button></div>`},
 load(){return `<div style="text-align:center;padding-top:40px"><h2>Analyzing your item…</h2><p class="m">Checking what it is, battery type and damage with Gemini Vision.</p>${M.img?`<img src="${M.img}" alt="Your photo" style="max-width:200px;max-height:160px;border-radius:14px;margin:18px auto;display:block" onerror="this.remove()">`:''}<div class="bat" style="margin-top:28px"><i></i></div></div>`},
 result(){const r=M.cur;if(!r)return V.home();if(r.conf<.6)return `<div class="cd" style="text-align:center;margin-top:30px"><h2>Not sure, try a closer photo</h2><p class="m">The photo was unclear, so I won’t guess.</p><div class="sw" style="justify-content:center"><button class="cta" data-a="scan">Retake photo</button><button class="ch" data-a="go" data-v="home">Back</button></div></div>`;
 return `<span class="bd sm">Scan result</span><div class="row" style="margin:14px 0"><svg width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="${Math.round(r.conf*100)} percent match"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--tr)" stroke-width="10"/><circle cx="50" cy="50" r="40" fill="none" stroke="var(--ol)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${r.conf*251} 251" transform="rotate(-90 50 50)"/><text x="50" y="57" text-anchor="middle" font-size="22" font-weight="700" fill="var(--tx)">${Math.round(r.conf*100)}%</text></svg><div><h2 style="margin:0">${r.item}</h2>${r.type?`<span class="bd">${r.type}</span>`:''}</div></div>
@@ -139,26 +159,49 @@ async function scan(f){
   render();
   let r=null;
   try{
-    const fd=new FormData();
-    fd.append('image',f);
-    const res=await fetch('/api/scan',{method:'POST',body:fd});
+    const res=await fetch('/api/scan',{
+      method:'POST',
+      headers:{'content-type':f.type||'image/jpeg'},
+      body:f
+    });
     if(res.ok){
       const data=await res.json();
-      if(data.ok){
-        r={
-          item:data.item||'Battery',
-          cat:data.category||'battery',
-          type:data.batteryType?data.batteryType.replace(/_/g,'-'):'',
-          dam:data.damaged?(data.damageNotes||'Damaged / swollen cell: fire risk. Keep away from heat.'):'',
-          conf:typeof data.confidence==='number'?data.confidence:0.95,
-          f:data.dropoffFilter||'batteries',
-          st:Array.isArray(data.instructions)&&data.instructions.length?data.instructions:['Tape over the terminals.','Store in a non-flammable container.','Take to a certified drop-off.']
-        };
+      if(data.type){
+        const planRes=await fetch('/api/plan',{
+          method:'POST',
+          headers:{'content-type':'application/json'},
+          body:JSON.stringify({type:data.type,condition:data.condition||'intact',area:'Tampa'})
+        });
+        if(planRes.ok){
+          const pData=await planRes.json();
+          const adv=pData.advice||{};
+          r={
+            item:adv.summary||data.description||'Battery',
+            cat:'battery',
+            type:data.type,
+            dam:data.condition&&data.condition!=='intact'?(adv.headline||data.conditionEvidence||'Damaged condition'):'',
+            conf:0.95,
+            f:'batteries',
+            st:adv.steps||['Tape terminals','Store safely','Take to drop-off']
+          };
+          if(Array.isArray(pData.sites)&&pData.sites.length){
+            D=pData.sites.map((x,i)=>({
+              id:'s'+i,
+              name:x.name,
+              lat:x.lat,
+              lng:x.lng,
+              acc:x.types||['batteries'],
+              open:true,
+              address:x.address||'',
+              hours:x.hours||''
+            }));
+          }
+        }
       }
     }
   }catch(e){}
   if(!r){
-    await new Promise(res=>setTimeout(res,1800));
+    await new Promise(res=>setTimeout(res,1200));
     r=R[M.n++%R.length];
   }
   M.cur=r;
@@ -171,6 +214,57 @@ async function scan(f){
   }
   go('result');
   render();
+}
+
+async function submitManual(type,condition,area){
+  M.load=true;
+  render();
+  try{
+    const body={type,condition,area};
+    if(M.F.u) body.position=[M.F.u.lat,M.F.u.lng];
+    const res=await fetch('/api/plan',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(res.ok){
+      const data=await res.json();
+      const adv=data.advice||{};
+      M.cur={
+        item:adv.summary||type,
+        cat:'battery',
+        type:type,
+        dam:condition!=='intact'?(adv.headline||adv.callout||'Damaged / emergency condition'):'',
+        conf:1.0,
+        f:condition==='intact'?'batteries':'none',
+        st:adv.steps||adv.guidance||['Tape terminals','Store in safe container','Follow county guidelines']
+      };
+      if(Array.isArray(data.sites)&&data.sites.length){
+        D=data.sites.map((x,i)=>({
+          id:'s'+i,
+          name:x.name,
+          lat:x.lat,
+          lng:x.lng,
+          acc:x.types||['batteries'],
+          open:true,
+          address:x.address||'',
+          hours:x.hours||''
+        }));
+      }
+      M.load=false;
+      if(condition==='intact'){
+        S.count++;
+        S.hist.unshift({item:M.cur.item,type:M.cur.type,d:new Date().toLocaleDateString()});
+        S.hist=S.hist.slice(0,20);
+        sv();
+      }
+      go('result');
+      return;
+    }
+  }catch(e){}
+  M.load=false;
+  M.cur=R[0];
+  go('result');
 }
 
 function reply(q){q=q.toLowerCase();const has=(...w)=>w.some(x=>q.includes(x));
@@ -251,6 +345,7 @@ else if(a==='fab'){const c=$('#chat');c.hidden=!c.hidden;if(!c.hidden){cr();$('#
 else if(a==='q')say(b.dataset.q);
 else if(a==='chatfind'){$('#chat').hidden=true;go('find')}});
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='cf'){const i=$('#ci');say(i.value);i.value='';return}
+if(e.target.id==='mf'){const t=$('#m-type').value,c=$('#m-cond').value,a=$('#m-area').value.trim()||'Tampa';submitManual(t,c,a);return}
 if(e.target.id==='af'){const f=new FormData(e.target),em=f.get('e').trim().toLowerCase(),pw=btoa(f.get('p'));M.err='';
 if(M.tab==='create'){if(S.acc.some(x=>x.e===em)){M.err='That email already has an account. Try Sign in.';render();return}const n=f.get('n').trim();S.acc.push({e:em,n,p:pw});S.user={name:n,email:em}}
 else{const a=S.acc.find(x=>x.e===em&&x.p===pw);if(!a){M.err='No account matches that email and password.';render();return}S.user={name:a.n,email:em}}
