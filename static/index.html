@@ -212,35 +212,52 @@ const V = {
   scan() {
     return `
     <div class="scan-desktop-layout">
-      <div style="text-align:center;padding:20px 0">
+      <div style="text-align:center;padding:16px 0">
         <h1>Got a dead battery?</h1>
-        <p class="m" style="max-width:380px;margin:0 auto 24px">
-          Snap a photo or stream your camera. We tell you what it is, how to handle it safely, and where to drop it off.
+        <p class="m" style="max-width:440px;margin:0 auto 18px">
+          Hold your battery label facing the camera. Our Gemini AI automatically detects chemistry, hazards, and county drop-offs in real time.
         </p>
 
-        <div style="position:relative;width:240px;height:240px;margin:0 auto 20px;border-radius:50%;border:4px solid var(--ol);display:flex;align-items:center;justify-content:center;background:var(--cd);box-shadow:0 0 30px rgba(198,244,50,0.25);overflow:hidden">
-          <video id="camera" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:none"></video>
-          <div id="cam-placeholder" style="color:var(--ol);display:flex;flex-direction:column;align-items:center;gap:8px">
+        <!-- Expanded Camera Detection HUD Viewfinder -->
+        <div style="position:relative;width:100%;max-width:540px;min-height:340px;height:360px;margin:0 auto 16px;border-radius:24px;border:3px solid var(--ol);display:flex;align-items:center;justify-content:center;background:#050806;box-shadow:0 0 35px rgba(198,244,50,0.18);overflow:hidden">
+          <video id="camera" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;display:block"></video>
+          <div id="cam-placeholder" style="color:var(--ol);display:none;flex-direction:column;align-items:center;gap:8px">
             ${IC.cam}
-            <span class="sm" style="font-weight:700">Live Camera</span>
+            <span class="sm" style="font-weight:700">Starting automatic camera…</span>
           </div>
-          <div class="scan-sweep" style="position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(198,244,50,0.22),transparent);animation:sweep 2.4s ease-in-out infinite;pointer-events:none"></div>
+
+          <!-- Futuristic HUD Corner Targeting Brackets -->
+          <div style="position:absolute;top:16px;left:16px;width:28px;height:28px;border-top:3px solid var(--ol);border-left:3px solid var(--ol);border-top-left-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;top:16px;right:16px;width:28px;height:28px;border-top:3px solid var(--ol);border-right:3px solid var(--ol);border-top-right-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;bottom:16px;left:16px;width:28px;height:28px;border-bottom:3px solid var(--ol);border-left:3px solid var(--ol);border-bottom-left-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;bottom:16px;right:16px;width:28px;height:28px;border-bottom:3px solid var(--ol);border-right:3px solid var(--ol);border-bottom-right-radius:8px;pointer-events:none"></div>
+
+          <!-- Central Target Crosshairs -->
+          <div style="position:absolute;width:120px;height:120px;border:1px dashed rgba(198,244,50,0.4);border-radius:18px;pointer-events:none;display:flex;align-items:center;justify-content:center">
+            <div style="width:8px;height:8px;border-radius:50%;background:rgba(198,244,50,0.6)"></div>
+          </div>
+
+          <!-- Animated Laser Sweep -->
+          <div class="scan-sweep" style="position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(198,244,50,0.22) 50%,transparent);animation:sweep 2.4s ease-in-out infinite;pointer-events:none"></div>
+
+          <!-- Floating Live Detection Badge -->
+          <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(14,20,16,0.85);backdrop-filter:blur(8px);border-radius:20px;border:1px solid rgba(198,244,50,0.4);font-size:13px;font-weight:600;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:2">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--ol);animation:pulse 1.2s infinite"></span>
+            <span id="cam-badge-text">Automatic AI Detection Active</span>
+          </div>
+
+          <!-- Real-Time Prompt Message Overlay -->
+          <div id="cam-status-msg" style="position:absolute;bottom:14px;left:14px;right:14px;padding:10px 16px;background:rgba(14,20,16,0.88);backdrop-filter:blur(10px);border-radius:14px;font-size:13px;color:#fff;text-align:center;border:1px solid rgba(255,255,255,0.1);z-index:2">
+            Hold battery steady in frame — identifying automatically…
+          </div>
         </div>
 
-        <p id="cam-status-msg" class="m sm" role="status" style="min-height:20px;margin-bottom:14px"></p>
-
-        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
-          <button id="btn-cam-start" class="cta" data-a="cam-start" style="padding:0 32px">
-            Start live camera
+        <div style="display:flex;flex-direction:row;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px">
+          <button class="cta sm row" data-a="upload" style="padding:8px 20px">
+            📁 Upload photo from device
           </button>
-          <button id="btn-cam-capture" class="cta" data-a="cam-capture" style="padding:0 32px;background:#fff;color:#0E1410" hidden>
-            📸 Capture & Identify
-          </button>
-          <button id="btn-cam-stop" class="ch sm" data-a="cam-stop" hidden>
-            Stop camera
-          </button>
-          <button class="ch sm" data-a="upload" style="margin-top:4px">
-            Upload from gallery
+          <button id="btn-cam-toggle" class="ch sm" data-a="cam-toggle">
+            Pause camera
           </button>
           <button class="ch sm" data-a="go" data-v="manual" style="border:0;text-decoration:underline">
             Select item manually
@@ -661,6 +678,11 @@ function render() {
   }
 
   theme();
+  if (x === 'scan') {
+    setTimeout(startCamera, 120);
+  } else {
+    stopCamera();
+  }
 }
 
 let cameraStream = null;
@@ -686,10 +708,12 @@ async function handleScanSuccess(blob, data) {
   M.load = true;
   render();
 
+  const isDamaged = data.damaged === true;
+  const planType = data.type || (data.batteryType === 'alkaline' ? 'household' : (data.batteryType === 'lithium_ion' ? 'rechargeable' : 'rechargeable'));
   const planRes = await fetch('/api/plan', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ type: data.type, condition: data.condition || 'intact', area: 'Tampa' })
+    body: JSON.stringify({ type: planType, condition: isDamaged ? 'damaged' : 'intact', area: 'Tampa' })
   });
 
   let adv = {};
@@ -700,20 +724,23 @@ async function handleScanSuccess(blob, data) {
     sites = pData.sites || [];
   }
 
-  const isDamaged = data.condition && data.condition !== 'intact';
+  const instructions = (Array.isArray(data.instructions) && data.instructions.length)
+    ? data.instructions
+    : (adv.steps || ['Confirm battery chemistry on printed label', 'Tape exposed terminals with nonconductive tape', 'Drop off at certified collection facility']);
+
   const r = {
-    item: adv.summary || data.description || 'Recognized Battery',
-    cat: 'battery',
-    type: data.type,
-    description: data.description || '',
+    item: data.item || adv.summary || 'Recognized Battery',
+    cat: data.category || 'battery',
+    type: data.batteryType || data.type || 'battery',
+    description: data.item || data.description || '',
     markings: data.markings || '',
-    condition: data.condition || 'intact',
-    conditionEvidence: data.conditionEvidence || '',
-    dam: isDamaged ? (adv.headline || data.conditionEvidence || 'Damaged condition') : '',
-    conf: 0.98,
-    f: isDamaged ? 'none' : 'batteries',
-    st: adv.steps || ['Tape terminals with nonconductive tape', 'Store in a cool, dry, non-flammable container', 'Take to a verified Hillsborough drop-off'],
-    phone: adv.phone || (isDamaged ? '813-272-5680' : null),
+    condition: isDamaged ? 'damaged' : 'intact',
+    conditionEvidence: data.damageNotes || data.conditionEvidence || '',
+    dam: isDamaged ? (data.damageNotes || 'Battery appears damaged, leaking, or swollen.') : '',
+    conf: typeof data.confidence === 'number' ? data.confidence : 0.95,
+    f: data.dropoffFilter || (isDamaged ? 'none' : 'batteries'),
+    st: instructions,
+    phone: isDamaged ? '813-272-5680' : adv.phone,
     phoneStatus: adv.phoneStatus,
     source: adv.source
   };
@@ -735,10 +762,12 @@ async function handleScanSuccess(blob, data) {
 
   M.cur = r;
   M.load = false;
-  S.count++;
-  S.hist.unshift({ item: r.item, type: r.type, d: new Date().toLocaleDateString() });
-  S.hist = S.hist.slice(0, 20);
-  sv();
+  if (r.conf >= 0.6 && r.cat !== 'other' && r.cat !== 'unknown') {
+    S.count++;
+    S.hist.unshift({ item: r.item, type: r.type, d: new Date().toLocaleDateString() });
+    S.hist = S.hist.slice(0, 20);
+    sv();
+  }
   go('result');
   render();
 }
@@ -746,13 +775,13 @@ async function handleScanSuccess(blob, data) {
 async function startCamera() {
   const vid = $('#camera');
   const placeholder = $('#cam-placeholder');
-  const btnStart = $('#btn-cam-start');
-  const btnCapture = $('#btn-cam-capture');
-  const btnStop = $('#btn-cam-stop');
   const msg = $('#cam-status-msg');
+  const badge = $('#cam-badge-text');
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    if (msg) msg.textContent = 'Camera is unavailable in this browser. Upload a photo instead.';
+    if (msg) msg.textContent = 'Camera is unavailable in this browser. Upload a photo below.';
+    if (placeholder) placeholder.style.display = 'flex';
+    if (vid) vid.style.display = 'none';
     return;
   }
 
@@ -761,7 +790,7 @@ async function startCamera() {
   const signal = scanAbortController.signal;
 
   try {
-    if (msg) msg.textContent = 'Requesting camera access…';
+    if (msg) msg.textContent = 'Activating camera…';
     cameraStream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
@@ -776,22 +805,21 @@ async function startCamera() {
       await vid.play();
     }
     if (placeholder) placeholder.style.display = 'none';
-    if (btnStart) btnStart.hidden = true;
-    if (btnCapture) btnCapture.hidden = false;
-    if (btnStop) btnStop.hidden = false;
 
-    // Automatic detection and recognition loop (Person A backend feature)
-    for (let i = 0; i < 4 && !signal.aborted; i++) {
+    // Automatic multi-frame detection loop using vision.py
+    for (let i = 0; i < 6 && !signal.aborted; i++) {
       if (i === 0) {
-        if (msg) msg.textContent = 'Hold battery steady in circular viewfinder…';
-        await new Promise(r => setTimeout(r, 1800));
+        if (msg) msg.textContent = 'Hold battery label steady in frame…';
+        await new Promise(r => setTimeout(r, 1600));
       } else {
-        if (msg) msg.textContent = 'Scanning battery label automatically…';
-        await new Promise(r => setTimeout(r, 2200));
+        if (msg) msg.textContent = 'Detecting battery label automatically…';
+        await new Promise(r => setTimeout(r, 2000));
       }
       if (signal.aborted || !cameraStream) return;
       if (msg) msg.textContent = 'Recognizing battery with Gemini Vision AI…';
-      const frameBlob = await grabFrame(i === 1);
+      if (badge) badge.textContent = 'Analyzing frame…';
+
+      const frameBlob = await grabFrame(i % 2 === 1);
       if (signal.aborted || !frameBlob) return;
 
       try {
@@ -803,7 +831,7 @@ async function startCamera() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.type && data.type !== 'unsure' && data.type !== 'unknownBattery') {
+          if (data && data.category && data.category !== 'unknown' && data.confidence >= 0.6) {
             stopCamera();
             await handleScanSuccess(frameBlob, data);
             return;
@@ -812,13 +840,18 @@ async function startCamera() {
       } catch (e) {
         if (signal.aborted) return;
       }
+      if (badge) badge.textContent = 'Automatic AI Detection Active';
     }
     if (!signal.aborted && msg) {
-      msg.textContent = 'Keep label steady or tap "📸 Capture & Identify" below.';
+      msg.textContent = 'Hold steady or click "Upload photo from device" below.';
     }
   } catch (err) {
     if (!signal.aborted && msg) {
-      msg.textContent = err.name === 'NotAllowedError' ? 'Camera permission was denied. Upload a photo instead.' : 'Could not start camera: ' + err.message;
+      msg.textContent = err.name === 'NotAllowedError'
+        ? 'Camera permission denied. Upload a photo below.'
+        : 'Could not access camera: ' + err.message;
+      if (placeholder) placeholder.style.display = 'flex';
+      if (vid) vid.style.display = 'none';
     }
   }
 }
@@ -834,9 +867,6 @@ function stopCamera() {
   }
   const vid = $('#camera');
   const placeholder = $('#cam-placeholder');
-  const btnStart = $('#btn-cam-start');
-  const btnCapture = $('#btn-cam-capture');
-  const btnStop = $('#btn-cam-stop');
   const msg = $('#cam-status-msg');
 
   if (vid) {
@@ -845,18 +875,7 @@ function stopCamera() {
     vid.style.display = 'none';
   }
   if (placeholder) placeholder.style.display = 'flex';
-  if (btnStart) btnStart.hidden = false;
-  if (btnCapture) btnCapture.hidden = true;
-  if (btnStop) btnStop.hidden = true;
   if (msg) msg.textContent = '';
-}
-
-async function captureCamera() {
-  const vid = $('#camera');
-  if (!vid || !cameraStream) return;
-  const frameBlob = await grabFrame(false);
-  stopCamera();
-  if (frameBlob) scan(frameBlob);
 }
 
 function go(v) {
@@ -880,7 +899,7 @@ async function scan(f) {
     });
     if (res.ok) {
       const data = await res.json();
-      if (data.type) {
+      if (data && data.ok) {
         await handleScanSuccess(f, data);
         return;
       }
@@ -889,13 +908,16 @@ async function scan(f) {
 
   M.load = false;
   M.cur = {
-    item: 'Battery requiring closer inspection',
-    cat: 'battery',
+    item: 'Item label unclear',
+    cat: 'unknown',
     type: 'unknownBattery',
     dam: '',
     conf: 0.5,
     f: 'none',
-    st: ['Hold battery label steady under good lighting or select type manually.'],
+    st: [
+      'Take a closer, well-lit photo of one item with the label facing the camera.',
+      'Check the product label or manufacturer instructions before choosing a disposal option.'
+    ],
     phone: '813-272-5680'
   };
   go('result');
@@ -1088,9 +1110,19 @@ document.addEventListener('click', e => {
   if (a === 'tab') { M.tab = v; M.err = ''; render(); }
   else if (a === 'guest') { S.user = { name: 'Guest Hero', guest: 1 }; sv(); go('home'); }
   else if (a === 'scan') { go('scan'); }
-  else if (a === 'cam-start') { startCamera(); }
-  else if (a === 'cam-capture') { captureCamera(); }
-  else if (a === 'cam-stop') { stopCamera(); }
+  else if (a === 'cam-toggle') {
+    if (cameraStream) {
+      stopCamera();
+      const msg = $('#cam-status-msg');
+      if (msg) msg.textContent = 'Camera paused.';
+      const btn = $('#btn-cam-toggle');
+      if (btn) btn.textContent = 'Resume camera';
+    } else {
+      startCamera();
+      const btn = $('#btn-cam-toggle');
+      if (btn) btn.textContent = 'Pause camera';
+    }
+  }
   else if (a === 'upload') { $('#fi').click(); }
   else if (a === 'go') { go(v); }
   else if (a === 'find') { F.f = v; go('find'); fetchBackendDropoffs(F.u ? F.u.lat : 28.06, F.u ? F.u.lng : -82.41); }
