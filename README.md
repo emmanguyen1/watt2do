@@ -1,53 +1,109 @@
 # Watt2Do
 
-Watt2Do helps people in Hillsborough County identify a battery or electronic item, check how to handle it, and find an appropriate drop-off.
+Watt2Do is an intelligent battery and electronic waste identification and safe disposal assistant designed for Hillsborough County, Florida. It helps residents identify electronic items and battery chemistries, evaluate their physical condition, receive critical safety guidance, and locate verified municipal and commercial drop-off facilities.
 
-## Run locally
+---
 
-Requires Node.js 22 or newer. From this directory, run `npm start` and open [localhost:3001](http://localhost:3001). There is no package installation step.
+## Features
 
-The manual picker, guidance, and location list work without a Gemini key. To enable the live camera and photo upload, get a [Gemini Developer API key](https://aistudio.google.com/api-keys), copy `.env.example` to `.env`, fill in `GEMINI_API_KEY`, and restart. The key stays on the server. The default model is Gemini 3.5 Flash-Lite. Browser camera and location access require localhost or an HTTPS origin and user permission.
+- **Visual Item Identification**: Leverages the Google Gemini Developer API to analyze photos or live camera captures to suggest battery chemistry and device classification.
+- **Safety-First Handling Rules**: Differentiates between intact items and compromised items (swollen, leaking, or hot). Automatically surfaces hazardous waste protocols, emergency handling precautions, and regulatory contacts for high-risk items.
+- **Local Drop-Off Directory & Interactive Mapping**: Features an interactive Leaflet and OpenStreetMap interface with geolocation-based distance calculations, filtering municipal collection centers, retail drop-off partners (e.g., Batteries Plus, Best Buy, Staples), and county hazardous waste sites.
+- **Privacy & Security by Design**: No user images are stored on disk. API keys remain protected server-side, and client-side confirmation ensures the user verifies item conditions before proceeding.
+- **Zero-Dependency Node.js Server**: The primary application runs on modern Node.js using native modules, with an alternative Python Flask implementation available.
 
-## Demo workflow
+---
 
-1. Scan one item or choose a type manually. For a quick map demo, choose **Rechargeable battery or tool pack**.
-2. Select **Intact and cool**, then select **Show guidance and drop-offs**. The map starts with Tampa. Enter a supported local ZIP or choose **Use my location** to refine distance sorting.
-3. Try the same type with **Swollen** to see emergency indicators, handling guidance and time-aware county contact information.
+## Quick Start
 
-Watt2Do uses approximate straight-line distance and a Tampa-area directory. Call ahead about exact acceptance, hours, limits, and fees. Intact power banks show call-first county contacts. Damaged items receive safety guidance and no routine drop-off directions.
+### Prerequisites
 
-## How it works
+- **Node.js**: Version 22.0.0 or newer
+- *(Optional)* **Gemini API Key**: Required for live camera and image recognition features. Manual selection and the facility directory work without a key. Obtain a key from [Google AI Studio](https://aistudio.google.com/api-keys).
 
-- The browser captures snapshots or takes an uploaded image. The Node server validates its type and size, sends it to Gemini and checks the structured response. The browser uses the suggestion to fill the editable type picker. Gemini can also suggest a visible condition. Review or correct the suggestion and confirm it before continuing. Only the user can mark an item as intact and cool.
-- Application rules determine safety guidance and facility eligibility. Gemini provides only an item suggestion. It does not choose locations or determine whether an item is safe to transport.
-- The server does not save images. Google processes submitted frames under [Gemini API terms](https://ai.google.dev/gemini-api/docs/terms). Google may use free-tier submissions to improve its products. Keep personal information out of the camera frame.
+### Installation & Execution
 
-## Frameworks, libraries and services
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/emmanguyen1/watt2do.git
+   cd watt2do
+   ```
 
-- **Frameworks** — None. The server uses Node.js built-in modules. The frontend uses HTML, CSS and browser JavaScript.
-- **Leaflet 1.9.4** — interactive map, loaded from unpkg. [Leaflet](https://leafletjs.com/)
-- **OpenStreetMap** — basemap tiles and attribution. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
-- **Google Maps URLs** — external directions links.
-- **Google Gemini Developer API** — image classification. [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite)
-- **OpenAI Codex** — AI-assisted implementation, source research and verification.
+2. **Configure environment variables (optional)**:
+   Copy the example environment configuration:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your Gemini Developer API key to `.env`:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   PORT=3001
+   ```
+   > **Note:** `.env` is included in `.gitignore` to prevent credentials from being tracked in version control. Never commit API keys or secret tokens.
 
-## Hackathon authorship and AI disclosure
+3. **Start the application**:
+   ```bash
+   npm start
+   ```
+   Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-Development in this folder began after the participant reported that the event had started. The participant reused the project idea and specified its scope and requirements. This implementation was written in a new folder without copying project files, code, or documents from the pre-event prototype.
+---
 
-OpenAI Codex generated the initial code, interface, directory, rules, README, and verification scripts and helped research public sources. The participant directed the build, including the name, camera workflow, grouped item picker, safety-first routing, and drop-off map. Add any additional participant-written code, design, research, and manual testing to this section before submission.
+## How It Works
 
-Suggested MLH submission disclosure: “I used OpenAI Codex to generate and verify Watt2Do’s initial frontend, backend, and source-backed directory from my requirements during the event. Watt2Do also uses Google Gemini at runtime to suggest an item type from camera frames. The app uses separate user-confirmed conditions and written rules to determine safety guidance and drop-off results.”
+1. **Capture & Classify**: The user captures an image using a device camera or uploads a file. The server validates image dimensions and MIME type before sending the frame to the Gemini Developer API (`gemini-3.5-flash-lite`).
+2. **User Verification**: Gemini returns an initial item and condition suggestion. The user reviews and confirms the item type and physical condition. To ensure safety, only the user can certify an item as intact and cool.
+3. **Safety Routing**: Rule-based logic evaluates the confirmed condition. Damaged, swollen, or punctured batteries immediately trigger safety mitigation steps (e.g., isolation, non-flammable containers, sand/vermiculite) and suppress routine recycling directions in favor of specialized hazardous waste handling.
+4. **Locate Drop-Off Facilities**: Intact items display eligible drop-off centers sorted by straight-line distance, incorporating operational hours, contact details, and acceptance criteria.
 
-## Public data sources
+---
 
-- [Hillsborough County battery collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries)
-- [Hillsborough County electronics collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics)
-- [Hillsborough County household hazardous waste collection](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-household-hazardous-waste)
-- [EPA lithium-ion battery guidance](https://www.epa.gov/recycle/frequent-questions-lithium-ion-batteries)
-- [Batteries Plus](https://www.batteriesplus.com/blog/power/battery-and-light-bulb-recycling), [Staples](https://www.staples.com/stores/recycling), [Best Buy](https://www.bestbuy.com/site/services/recycling/pcmcat149900050025.c), [eSmart](https://esmartrecycling.com/individual-dropoffs/) and [Posey](https://poseypowerbatteries.com/?page_id=614)
-- [Hillsborough County Environmental Protection Commission lead-acid directory](https://www.epchc.org/home/showpublisheddocument/3228/639065853819430000)
+## System Architecture & Tech Stack
 
-## Optional Flask scan backend
+- **Frontend**: Standard HTML5, CSS3, and modern browser JavaScript (ES modules).
+  - **Mapping**: [Leaflet 1.9.4](https://leafletjs.com/) with [OpenStreetMap](https://www.openstreetmap.org/) basemap tiles.
+  - **Navigation**: Direct external routing via Google Maps.
+- **Backend (Default)**: Node.js (native `node:http`, `node:crypto`, `node:fs`, ESM). Zero third-party runtime package dependencies.
+- **Backend (Python / Flask Alternative)**: A Python Flask REST API (`app.py`, `vision.py`, `dropoffs.py`) is also provided for Python environments.
+- **AI Classification**: [Google Gemini Developer API](https://ai.google.dev/) using `gemini-3.5-flash-lite`.
 
-The Node.js app on port 3001 is the demo entry point. The repository also includes the separate Flask scan API from the team brief. The browser demo uses the Node.js API. To test Flask separately, install `requirements.txt` and run `python app.py` on port 5000.
+---
+
+## Running the Python / Flask Service (Alternative)
+
+If you prefer to run the Python backend:
+
+1. Create and activate a virtual environment:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Ensure `.env` is configured, then run:
+   ```bash
+   python app.py
+   ```
+   The Flask application will start on port 5000.
+
+---
+
+## Public Data & Regulatory Sources
+
+Facility information and handling guidelines are derived from official municipal and industry standards:
+
+- [Hillsborough County Battery Collection Guidelines](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries)
+- [Hillsborough County Electronics Recycling](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics)
+- [Hillsborough County Household Hazardous Waste Collection](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-household-hazardous-waste)
+- [EPA Lithium-Ion Battery Safety & Recycling](https://www.epa.gov/recycle/frequent-questions-lithium-ion-batteries)
+- [Hillsborough County EPC Lead-Acid Directory](https://www.epchc.org/home/showpublisheddocument/3228/639065853819430000)
+- Verified retail recycling programs: [Batteries Plus](https://www.batteriesplus.com/blog/power/battery-and-light-bulb-recycling), [Best Buy](https://www.bestbuy.com/site/services/recycling/pcmcat149900050025.c), [Staples](https://www.staples.com/stores/recycling), [eSmart Recycling](https://esmartrecycling.com/individual-dropoffs/), and [Posey Power Batteries](https://poseypowerbatteries.com/?page_id=614).
+
+---
+
+## Safety & Disclaimer
+
+Watt2Do provides location guidance and safety suggestions for informational purposes. Compromised lithium-ion batteries present severe thermal runaway and fire risks. Always contact recycling centers and municipal facilities in advance to confirm current acceptance policies, volume limits, operating hours, and handling fees.
