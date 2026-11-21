@@ -41,3 +41,11 @@ Watt2Do uses approximate straight-line distance and a Tampa-area directory. Call
 ## Optional Flask scan backend
 
 The Node.js app on port 3001 is the demo entry point. The repository also includes the separate Flask scan API from the team brief. The browser demo uses the Node.js API. To test Flask separately, install `requirements.txt` and run `python app.py` on port 5000.
+
+### Google Maps for the Node app
+
+Set GOOGLE_MAPS_BROWSER_KEY in your local .env to enable the Google Maps
+JavaScript API map. Allow http://localhost:3001/* in the key's website
+restrictions for local development. Drop-off cards and directions links are
+available while the map is unavailable. The map module adapts Person B's
+Google Maps implementation for the Node app.

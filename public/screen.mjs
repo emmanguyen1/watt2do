@@ -8,7 +8,7 @@ let catalog;
 let scanning;
 let imageUrl;
 let planRequest;
-let map;
+let mapRender = Promise.resolve();
 let locationRequest = 0;
 
 function textElement(tag,text) {
@@ -51,8 +51,7 @@ try {
 function clearPlan() {
   locationRequest++;
   planRequest?.abort();
-  map?.remove();
-  map = null;
+  window.Watt2DoMap?.clear();
   byId('advice').hidden = true;
   byId('results').hidden = true;
   byId('map').hidden = true;
@@ -91,12 +90,13 @@ function recognize(frame,result) {
   byId('recognition-text').textContent = [result.description,result.markings && 'Visible label: ' + result.markings].filter(Boolean).join(' · ');
   byId('recognition').hidden = false;
   item.value = result.type === 'unsure' ? '' : result.type;
-  const suggestion = Object.hasOwn(catalog.conditions,result.condition) && result.condition !== 'intact' ? result.condition : 'unsure';
+  const suggestion = Object.hasOwn(catalog.conditions,result.condition) ? result.condition : 'unsure';
   condition.value = suggestion;
   conditionReview.hidden = false;
   conditionChecked.checked = false;
   conditionChecked.required = true;
   const note = suggestion === 'unsure' ? 'The photo cannot confirm whether the item is intact and cool.'
+    : suggestion === 'intact' ? 'No visible damage found. A photo cannot tell if the item is cool.'
     : 'Photo suggestion: ' + catalog.conditions[suggestion] + (result.conditionEvidence ? ' (' + result.conditionEvidence + ').' : '.');
   byId('condition-suggestion').textContent = note + ' Check the actual item from a safe distance and correct the selection if needed. If there is smoke or fire, move away and call 911.';
 }
@@ -208,7 +208,7 @@ function showAdvice(advice) {
 function directions(site) {
   return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(site.address);
 }
-function showSites(sites) {
+function showSites(sites,position,signal) {
   for (const site of sites) {
     const card = textElement('li','');
     card.append(textElement('h3',site.name),textElement('p',site.address),
@@ -219,25 +219,21 @@ function showSites(sites) {
     card.append(anchor('Acceptance details',site.source));
     byId('place-list').append(card);
   }
-  if (!sites.length || !window.L) return;
-  byId('map').hidden = false;
-  try {
-    map = window.L.map('map',{scrollWheelZoom:false});
-    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    for (const site of sites) {
-      const popup = document.createElement('div');
-      popup.append(textElement('strong',site.name),textElement('p',site.address));
-      popup.append(site.callFirst ? anchor('Call before visiting','tel:' + site.phone) : anchor('Directions',directions(site)));
-      window.L.marker([site.lat,site.lng],{title:site.name,alt:site.name}).addTo(map).bindPopup(popup);
-    }
-    map.fitBounds(sites.map(site => [site.lat,site.lng]),{padding:[22,22],maxZoom:14});
-  } catch {
-    map?.remove();
-    map = null;
-    byId('map').hidden = true;
-  }
+  if (!sites.length || !window.Watt2DoMap) return;
+  const origin = position ? {lat:position[0],lng:position[1]} : null;
+  const results = sites.map(site => ({
+    name:site.name,address:site.address,lat:site.lat,lng:site.lng,
+    distanceKm:Math.round(site.miles * 16.09344) / 10,
+    hours:site.callFirst ? 'Call ahead to confirm acceptance' : site.hours
+  }));
+  mapRender = mapRender.then(async () => {
+    if (signal.aborted) return;
+    byId('map').hidden = false;
+    await window.Watt2DoMap.show('map',origin,results);
+    if (signal.aborted) window.Watt2DoMap.clear();
+  }).catch(() => {
+    if (!signal.aborted) byId('map').hidden = true;
+  });
 }
 
 async function loadPlan(position) {
@@ -262,7 +258,7 @@ async function loadPlan(position) {
     byId('map-message').textContent = result.areaError || (result.sites.length
       ? result.sites.length + ' nearby options for ' + result.area + '.'
       : 'No eligible locations found in this directory near ' + result.area + '.');
-    showSites(result.sites);
+    showSites(result.sites,position,signal);
   } catch (error) {
     if (!signal.aborted) byId('plan-message').textContent = error.message;
   }
