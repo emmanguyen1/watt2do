@@ -14,6 +14,30 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 ---
 
+## Architecture & Codebase Overview
+
+```text
+watt2do/
+├── app.py                      # Flask server (port 5000): /api/health, /api/scan, registers dropoffs_bp
+├── vision.py                   # Gemini Vision API integration and structured JSON response validator
+├── dropoffs.py                 # Blueprint dropoffs_bp: GET /api/dropoffs & GET /api/maps-config
+├── data/
+│   └── fallback_dropoffs.json  # Hand-verified Hillsborough County / USF area drop-off locations
+├── static/
+│   └── map.js                  # Google Maps JavaScript API module (Watt2DoMap)
+├── public/
+│   ├── page.html               # Frontend interface
+│   ├── screen.css              # Interface styling
+│   └── screen.mjs              # Interactive client script
+├── directory.mjs               # Node.js local recycling directory & rules
+├── index.mjs                   # Lightweight Node.js server (port 3001)
+├── requirements.txt            # Python dependencies (Flask, python-dotenv)
+├── .env.example                # Template for environment keys
+└── .gitignore                  # Excludes .env, build files, and cache
+```
+
+---
+
 ## Quick Start
 
 ### Prerequisites
