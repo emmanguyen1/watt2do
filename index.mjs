@@ -11,6 +11,7 @@ const assets = {
   '/account.mjs':['account.mjs','text/javascript'],
   '/':['page.html','text/html'],
   '/screen.css':['screen.css','text/css'],
+  '/static/screen.css':['screen.css','text/css'],
   '/screen.mjs':['screen.mjs','text/javascript'],
   '/map.js':['map.js','text/javascript'],
   '/static/map.js':['map.js','text/javascript']
@@ -127,11 +128,11 @@ export const server = createServer(async (request,response) => {
   try {
     const url = new URL(request.url,'http://localhost');
     const path = url.pathname;
-    if (request.method === 'GET' && Object.hasOwn(assets,path)) {
+    if (['GET','HEAD'].includes(request.method) && Object.hasOwn(assets,path)) {
       const [file,type] = assets[path];
       const content = await readFile(new URL('./public/' + file,import.meta.url));
       response.writeHead(200,{'Content-Type':type + '; charset=utf-8','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});
-      return response.end(content);
+      return response.end(request.method === 'HEAD' ? undefined : content);
     }
     if (path === '/api/account' && ['GET','POST'].includes(request.method)) {
       return await handleAccount(request,response,{readBody,respond,RequestError});
