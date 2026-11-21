@@ -51,6 +51,7 @@ try {
 function clearPlan() {
   locationRequest++;
   planRequest?.abort();
+  if (window.Watt2DoMap) window.Watt2DoMap.clear();
   map?.remove();
   map = null;
   byId('advice').hidden = true;
@@ -208,19 +209,8 @@ function showAdvice(advice) {
 function directions(site) {
   return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(site.address);
 }
-function showSites(sites) {
-  for (const site of sites) {
-    const card = textElement('li','');
-    card.append(textElement('h3',site.name),textElement('p',site.address),
-      textElement('p',site.miles.toFixed(1) + ' mi · ' + site.hours),textElement('p',site.notes));
-    if (site.event) card.append(textElement('p','Additional HHW event: ' + site.event + ' each month, 8 am–2 pm'));
-    if (site.phone) card.append(anchor('Call ' + site.phone,'tel:' + site.phone));
-    if (!site.callFirst) card.append(anchor('Directions',directions(site)));
-    card.append(anchor('Acceptance details',site.source));
-    byId('place-list').append(card);
-  }
+function renderLeafletMap(sites) {
   if (!sites.length || !window.L) return;
-  byId('map').hidden = false;
   try {
     map = window.L.map('map',{scrollWheelZoom:false});
     window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -237,6 +227,54 @@ function showSites(sites) {
     map?.remove();
     map = null;
     byId('map').hidden = true;
+  }
+}
+
+function showSites(sites, userCoords) {
+  sites.forEach((site, index) => {
+    const card = textElement('li','');
+    card.style.cursor = 'pointer';
+    card.append(textElement('h3',site.name),textElement('p',site.address),
+      textElement('p',site.miles.toFixed(1) + ' mi · ' + site.hours),textElement('p',site.notes));
+    if (site.event) card.append(textElement('p','Additional HHW event: ' + site.event + ' each month, 8 am–2 pm'));
+    if (site.phone) card.append(anchor('Call ' + site.phone,'tel:' + site.phone));
+    if (!site.callFirst) card.append(anchor('Directions',directions(site)));
+    card.append(anchor('Acceptance details',site.source));
+
+    card.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'A' && window.Watt2DoMap) {
+        window.Watt2DoMap.selectDropoff(index);
+        byId('map').scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+    });
+
+    byId('place-list').append(card);
+  });
+  if (!sites.length) return;
+  byId('map').hidden = false;
+
+  if (window.Watt2DoMap) {
+    const userLocation = userCoords && Array.isArray(userCoords)
+      ? {lat: userCoords[0], lng: userCoords[1]}
+      : null;
+    const mappedSites = sites.map((s, idx) => ({
+      id: 'site-' + idx,
+      name: s.name,
+      address: s.address,
+      lat: s.lat,
+      lng: s.lng,
+      distanceKm: Math.round(s.miles * 1.60934 * 10) / 10,
+      openNow: true,
+      hours: s.hours,
+      accepts: [item.value || 'batteries']
+    }));
+
+    window.Watt2DoMap.show('map', userLocation, mappedSites).catch(err => {
+      console.warn('Google Maps could not initialize, falling back to Leaflet:', err);
+      renderLeafletMap(sites);
+    });
+  } else {
+    renderLeafletMap(sites);
   }
 }
 
@@ -262,7 +300,7 @@ async function loadPlan(position) {
     byId('map-message').textContent = result.areaError || (result.sites.length
       ? result.sites.length + ' nearby options for ' + result.area + '.'
       : 'No eligible locations found in this directory near ' + result.area + '.');
-    showSites(result.sites);
+    showSites(result.sites, position);
   } catch (error) {
     if (!signal.aborted) byId('plan-message').textContent = error.message;
   }

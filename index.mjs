@@ -5,7 +5,8 @@ import {advice,conditions,groups,labels,locations,zipCenters} from './directory.
 const assets = {
   '/':['page.html','text/html'],
   '/screen.css':['screen.css','text/css'],
-  '/screen.mjs':['screen.mjs','text/javascript']
+  '/screen.mjs':['screen.mjs','text/javascript'],
+  '/map.js':['map.js','text/javascript']
 };
 const key = process.env.GEMINI_API_KEY?.trim();
 const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
@@ -122,6 +123,7 @@ export const server = createServer(async (request,response) => {
       return response.end(content);
     }
     if (request.method === 'GET' && path === '/api/options') return respond(response,200,{groups,conditions,vision:Boolean(key)});
+    if (request.method === 'GET' && path === '/api/maps-config') return respond(response,200,{ok:true,mapsKey:process.env.GOOGLE_MAPS_BROWSER_KEY?.trim() || ''});
     if (request.method === 'POST' && path === '/api/plan') return respond(response,200,await plan(request));
     if (request.method === 'POST' && path === '/api/scan') return respond(response,200,await scan(request));
     return respond(response,404,{error:'Page not found.'});

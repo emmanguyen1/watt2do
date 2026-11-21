@@ -118,5 +118,95 @@
     "openNow": true,
     "hours": "Mon-Sat 10:00 AM - 8:00 PM, Sun 11:00 AM - 7:00 PM",
     "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-hillsborough-heights",
+    "name": "Hillsborough Heights Solid Waste & HHW Facility",
+    "lat": 28.0127,
+    "lng": -82.3036,
+    "address": "6209 County Road 579, Seffner, FL 33584",
+    "openNow": true,
+    "hours": "Mon-Sat 7:30 AM - 5:00 PM, 3rd Saturday HHW",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-south-county-waste",
+    "name": "South County Solid Waste Facility",
+    "lat": 27.8002,
+    "lng": -82.3855,
+    "address": "13000 US Highway 41, Gibsonton, FL 33534",
+    "openNow": true,
+    "hours": "Mon-Sat 7:30 AM - 5:00 PM, 2nd Saturday HHW",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-aldermans-ford",
+    "name": "Alderman's Ford Solid Waste Center",
+    "lat": 27.8713,
+    "lng": -82.1407,
+    "address": "9402 County Road 39, Plant City, FL 33567",
+    "openNow": true,
+    "hours": "Mon-Sat 7:30 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-bp-brandon",
+    "name": "Batteries Plus Bulbs - Brandon",
+    "lat": 27.9382,
+    "lng": -82.3164,
+    "address": "1926 W Brandon Blvd, Brandon, FL 33511",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 7:00 PM, Sat 8:00 AM - 6:00 PM, Sun 10:00 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-bb-brandon",
+    "name": "Best Buy - Brandon",
+    "lat": 27.9620,
+    "lng": -82.3382,
+    "address": "116 N Falkenburg Rd, Tampa, FL 33619",
+    "openNow": true,
+    "hours": "Mon-Sat 10:00 AM - 8:00 PM, Sun 11:00 AM - 7:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-staples-west-tampa",
+    "name": "Staples - West Tampa Tech Recycling",
+    "lat": 27.9594,
+    "lng": -82.5032,
+    "address": "3702 W Spruce St, Tampa, FL 33607",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 8:00 PM, Sat 9:00 AM - 7:00 PM, Sun 10:00 AM - 6:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-bp-south-tampa",
+    "name": "Batteries Plus Bulbs - South Tampa",
+    "lat": 27.9444,
+    "lng": -82.5206,
+    "address": "4506 W Kennedy Blvd, Tampa, FL 33609",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 7:00 PM, Sat 8:00 AM - 6:00 PM, Sun 10:00 AM - 5:00 PM",
+    "accepts": ["batteries", "ewaste", "hazardous"]
+  },
+  {
+    "id": "tampa-esmart-recycling",
+    "name": "eSmart Recycling - Certified E-Waste & Batteries",
+    "lat": 27.9239,
+    "lng": -82.3997,
+    "address": "5100 Vivian Place, Tampa, FL 33619",
+    "openNow": true,
+    "hours": "Mon-Fri 9:00 AM - 4:00 PM",
+    "accepts": ["batteries", "ewaste"]
+  },
+  {
+    "id": "tampa-posey-power",
+    "name": "Posey Power Batteries",
+    "lat": 27.9573,
+    "lng": -82.4252,
+    "address": "3101 E 3rd Ave, Tampa, FL 33605",
+    "openNow": true,
+    "hours": "Mon-Fri 8:00 AM - 5:00 PM",
+    "accepts": ["batteries", "hazardous"]
   }
 ]
