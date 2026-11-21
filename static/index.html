@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Watt2Do — Smart Battery & E-Waste Safety</title>
+  <meta name="description" content="AI-powered battery identification, damage detection, and safe drop-off locator.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-text">
+          <h1 class="app-title">Watt2Do</h1>
+          <p class="app-tagline">Watt's Next? Watt2Do.</p>
+        </div>
+      </div>
+      <div class="impact-counter-badge" id="impact-counter-badge" title="Total batteries and hazardous items safely diverted from landfills">
+        <span class="impact-icon">🌱</span>
+        <span class="impact-text"><strong id="impact-count">0</strong> items kept out of landfill</span>
+      </div>
+    </header>
+
+    <!-- Error Alert Toast/Banner -->
+    <div id="error-banner" class="error-banner hidden" role="alert">
+      <div class="error-content">
+        <span class="error-icon">⚠️</span>
+        <span id="error-message" class="error-message">Something went wrong. Please try again.</span>
+      </div>
+      <button id="error-dismiss-btn" class="error-dismiss-btn" aria-label="Dismiss">&times;</button>
+    </div>
+
+    <!-- MAIN APP CONTENT (Three States) -->
+    <main class="app-main">
+
+      <!-- ============================================== -->
+      <!-- STATE 1: START SCREEN                          -->
+      <!-- ============================================== -->
+      <section id="state-start" class="view-state state-start">
+        <div class="hero-card">
+          <div class="hero-badge">Safety First</div>
+          <h2 class="hero-headline">Never trash a dead battery.</h2>
+          <p class="hero-subtext">
+            Lithium and hazardous batteries cause explosive fires in garbage trucks and recycling facilities. Snap a quick photo to check for damage and find certified local drop-offs.
+          </p>
+        </div>
+
+        <div class="scan-action-area">
+          <!-- Hidden camera file input -->
+          <input
+            type="file"
+            id="camera-input"
+            accept="image/*"
+            capture="environment"
+            class="visually-hidden-input"
+            aria-label="Take or upload battery photo"
+          >
+
+          <!-- Large Scan Button -->
+          <button id="scan-trigger-btn" class="btn btn-primary btn-scan">
+            <span class="btn-scan-icon">📷</span>
+            <span class="btn-scan-label">Scan an Item</span>
+            <span class="btn-scan-sublabel">Take photo with camera</span>
+          </button>
+
+          <!-- File upload alternative for laptops / testing -->
+          <div class="upload-alt">
+            <button id="file-trigger-btn" class="btn-link">or select a photo from files</button>
+          </div>
+        </div>
+
+        <!-- Quick Guidance Tips -->
+        <div class="tips-card">
+          <h3 class="tips-title">💡 Tips for best results:</h3>
+          <ul class="tips-list">
+            <li>Ensure bright lighting and focus on the item</li>
+            <li>Capture warning labels, text, or battery terminals</li>
+            <li>Include any swelling, dents, or leaking areas</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- STATE 2: LOADING SCREEN                        -->
+      <!-- ============================================== -->
+      <section id="state-loading" class="view-state state-loading hidden">
+        <div class="loading-card">
+          <div class="scanner-visual">
+            <div class="pulse-ring"></div>
+            <div class="pulse-icon">⚡</div>
+          </div>
+          <h2 class="loading-title">Analyzing Item...</h2>
+          <p id="loading-status-text" class="loading-subtitle">Inspecting battery chemistry with Gemini Vision</p>
+          <div class="loading-progress-bar">
+            <div class="loading-progress-fill"></div>
+          </div>
+          <p class="loading-note">Checking for swelling, corrosion, and safety hazards</p>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- STATE 3: RESULT SCREEN                         -->
+      <!-- ============================================== -->
+      <section id="state-result" class="view-state state-result hidden">
+
+        <!-- Low Confidence State -->
+        <div id="low-confidence-box" class="card low-confidence-card hidden">
+          <div class="low-conf-icon">🔍</div>
+          <h2 class="low-conf-title">Not sure, try a closer photo</h2>
+          <p class="low-conf-text">
+            We couldn't clearly identify this item or its battery chemistry. Please take a closer photo with good lighting and clear view of labels.
+          </p>
+          <button id="retake-low-conf-btn" class="btn btn-primary btn-retake">
+            <span>📷 Retake Photo</span>
+          </button>
+        </div>
+
+        <!-- Confident Result Content -->
+        <div id="confident-result-box" class="result-details">
+
+          <!-- Item Identification Header -->
+          <div class="card item-header-card">
+            <div class="item-title-row">
+              <h2 id="result-item-name" class="result-item-name">AA Alkaline Battery</h2>
+              <span id="result-confidence-pill" class="confidence-pill" title="AI Confidence">95% match</span>
+            </div>
+            <div class="badge-row">
+              <span id="result-category-badge" class="badge badge-category">battery</span>
+              <span id="result-battery-type-badge" class="badge badge-type">alkaline</span>
+            </div>
+          </div>
+
+          <!-- Red Warning Banner for Damaged Items -->
+          <div id="damage-warning-banner" class="damage-warning-banner hidden" role="alert">
+            <div class="damage-banner-header">
+              <span class="damage-banner-icon">🚨</span>
+              <h3 class="damage-banner-title">CRITICAL SAFETY ALERT: DAMAGED BATTERY</h3>
+            </div>
+            <p id="damage-notes-text" class="damage-notes-text">
+              Physical damage, swelling, or corrosion detected. Handle with extreme caution.
+            </p>
+            <div class="damage-guidance-pill">
+              ⚠️ Keep away from heat and flammable items. Store in a fireproof container or bucket of sand. Do not charge or puncture.
+            </div>
+          </div>
+
+          <!-- Safety & Disposal Instructions -->
+          <div class="card instructions-card">
+            <div class="card-header-row">
+              <span class="card-icon">🛡️</span>
+              <h3 class="card-title">Safety & Disposal Instructions</h3>
+            </div>
+            <ol id="instructions-list" class="instructions-list">
+              <!-- Rendered dynamically -->
+            </ol>
+          </div>
+
+          <!-- Regular Bin Notification (when dropoffFilter === "none") -->
+          <div id="regular-bin-box" class="card regular-bin-card hidden">
+            <div class="regular-bin-icon">🗑️</div>
+            <div class="regular-bin-content">
+              <h3 class="regular-bin-title">Safe for Regular Disposal</h3>
+              <p class="regular-bin-text">
+                This item does not contain hazardous battery chemistry and can go in your standard household trash or regular curbside recycling bin according to local guidelines.
+              </p>
+            </div>
+          </div>
+
+          <!-- Drop-off Locations & Map Section (when dropoffFilter !== "none") -->
+          <div id="dropoff-section" class="card dropoff-section">
+            <div class="dropoff-header">
+              <div class="dropoff-title-wrap">
+                <span class="card-icon">📍</span>
+                <h3 class="card-title">Nearby Drop-off Locations</h3>
+              </div>
+              <span id="dropoff-filter-tag" class="filter-pill">Batteries</span>
+            </div>
+
+            <p id="location-status-indicator" class="location-status-text">
+              Finding nearest certified recycling drop-offs...
+            </p>
+
+            <!-- Fixed Height Map Container required by Person B's map.js -->
+            <div id="map" class="map-container" aria-label="Drop-off locations map"></div>
+
+            <!-- List of Nearby Drop-offs -->
+            <div class="dropoffs-list-container">
+              <h4 class="dropoffs-list-heading">Certified Locations</h4>
+              <div id="dropoffs-loading" class="dropoffs-loading">
+                <span class="mini-spinner"></span> Loading nearby centers...
+              </div>
+              <div id="dropoffs-empty" class="dropoffs-empty hidden">
+                <p>No drop-off locations found within range. Check county hazardous waste guidelines.</p>
+              </div>
+              <ul id="dropoffs-list" class="dropoffs-list">
+                <!-- Drop-off location cards rendered dynamically -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Scan Another Button -->
+          <div class="bottom-actions">
+            <button id="scan-another-btn" class="btn btn-secondary btn-full">
+              <span>🔄 Scan Another Item</span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p class="footer-text">
+        Watt2Do &bull; HackJam 26 &bull; USF &amp; Tampa Sustainability Initiative
+      </p>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <!-- map.js is owned by Person B and exposes Watt2DoMap.show and Watt2DoMap.clear -->
+  <script src="map.js"></script>
+  <!-- app.js is owned by Person C and drives the UI states, camera input, and API calls -->
+  <script src="app.js"></script>
+</body>
+</html>
