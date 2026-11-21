@@ -50,6 +50,24 @@
 </section>
 <input type="file" id="fi" accept="image/*" capture="environment" hidden>
 
+<footer class="w" style="padding-top:24px;padding-bottom:60px;border-top:1px solid var(--bd);margin-top:40px;text-align:center">
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:18px;margin-bottom:12px">
+    <span style="color:var(--ol)">⚡</span> Watt2Do &bull; Hillsborough County, FL
+  </div>
+  <p class="m sm" style="max-width:560px;margin:0 auto 16px">
+    Dedicated to protecting waste collection crews and municipal recycling facilities from lithium battery fires.
+  </p>
+  <div class="sw" style="justify-content:center;gap:12px;font-size:13px">
+    <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">County Battery Guide</a>
+    <span class="m">&bull;</span>
+    <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">County Electronics Guide</a>
+    <span class="m">&bull;</span>
+    <a href="https://www.epa.gov/recycle/used-lithium-ion-batteries" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">EPA Safety Guide</a>
+    <span class="m">&bull;</span>
+    <a href="https://locator.batterynetwork.org/" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">The Battery Network</a>
+  </div>
+</footer>
+
 <script>
 const $ = s => document.querySelector(s);
 const ST = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -360,6 +378,22 @@ const V = {
       ${r.st.map((s, i) => `<li><span class="n">${i + 1}</span><span>${esc(s)}</span></li>`).join('')}
     </ol>
 
+    ${r.phone ? `
+      <div style="margin:16px 0">
+        <a href="tel:${esc(r.phone)}" class="cta row" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--rd);color:#fff;text-decoration:none;width:100%">
+          📞 Call Hillsborough County: ${esc(r.phone)}
+        </a>
+      </div>
+    ` : ''}
+
+    ${r.source ? `
+      <p class="m sm" style="margin-top:10px">
+        <a href="${esc(r.source)}" target="_blank" rel="noopener noreferrer" style="color:var(--ol);text-decoration:underline">
+          Read official county guidance &rarr;
+        </a>
+      </p>
+    ` : ''}
+
     <div style="margin-top:24px">
       ${r.f !== 'none' ? `<button class="cta" style="width:100%" data-a="find" data-v="${r.f}">Find drop-off near me</button>` : '<p class="m">This can safely go in the regular municipal bin.</p>'}
       <button class="ch" style="width:100%;margin-top:10px" data-a="go" data-v="scan">Scan another item</button>
@@ -412,16 +446,25 @@ const V = {
 
         <div>
           ${L.length ? L.map((d, i) => `
-            <div class="cd row" style="margin-bottom:10px;${F.sel === d.id ? 'border-color:var(--ol)' : ''}">
-              <span class="n">${i + 1}</span>
-              <button data-a="sel" data-v="${d.id}" style="flex:1;text-align:left;background:none;border:0;padding:4px 0;cursor:pointer">
-                <b>${esc(d.name)}</b>
-                <div class="m sm">${d.km.toFixed(1)} km &bull; ${d.open ? 'Open now' : 'Closed'}${d.hours ? ' &bull; ' + esc(d.hours) : ''}</div>
-                ${d.address ? `<div class="m sm" style="margin-top:2px">${esc(d.address)}</div>` : ''}
-              </button>
-              <button class="ib" data-a="save" data-v="${d.id}" aria-pressed="${S.saved.includes(d.id)}" aria-label="Save ${esc(d.name)}" style="${S.saved.includes(d.id) ? 'background:var(--ac);color:var(--ot)' : ''}">
-                ${IC.star}
-              </button>
+            <div class="cd" style="margin-bottom:10px;${F.sel === d.id ? 'border-color:var(--ol)' : ''}">
+              <div class="row">
+                <span class="n">${i + 1}</span>
+                <button data-a="sel" data-v="${d.id}" style="flex:1;text-align:left;background:none;border:0;padding:4px 0;cursor:pointer">
+                  <b>${esc(d.name)}</b>
+                  <div class="m sm">${d.km.toFixed(1)} km &bull; ${d.open ? 'Open now' : 'Closed'}${d.hours ? ' &bull; ' + esc(d.hours) : ''}</div>
+                  ${d.address ? `<div class="m sm" style="margin-top:2px">${esc(d.address)}</div>` : ''}
+                </button>
+                <button class="ib" data-a="save" data-v="${d.id}" aria-pressed="${S.saved.includes(d.id)}" aria-label="Save ${esc(d.name)}" style="${S.saved.includes(d.id) ? 'background:var(--ac);color:var(--ot)' : ''}">
+                  ${IC.star}
+                </button>
+              </div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--tr);display:flex;gap:8px;flex-wrap:wrap">
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.address || d.name)}" target="_blank" rel="noopener noreferrer" class="ch sm row" style="text-decoration:none;padding:4px 12px">
+                  🧭 Directions
+                </a>
+                ${d.phone ? `<a href="tel:${esc(d.phone)}" class="ch sm row" style="text-decoration:none;padding:4px 12px">📞 Call</a>` : ''}
+                ${d.callFirst ? `<span class="sm" style="color:var(--rd);display:flex;align-items:center">*Call before visiting</span>` : ''}
+              </div>
             </div>
           `).join('') : '<p class="m">No drop-offs match this filter. Try another category.</p>'}
         </div>
@@ -700,7 +743,9 @@ async function scan(f) {
             dam: data.condition && data.condition !== 'intact' ? (adv.headline || data.conditionEvidence || 'Damaged condition') : '',
             conf: 0.95,
             f: 'batteries',
-            st: adv.steps || ['Tape terminals', 'Store safely in non-flammable container', 'Take to drop-off']
+            st: adv.steps || ['Tape terminals', 'Store safely in non-flammable container', 'Take to drop-off'],
+            phone: adv.phone,
+            source: adv.source
           };
           if (Array.isArray(pData.sites) && pData.sites.length) {
             D = pData.sites.map((x, i) => ({
@@ -756,7 +801,9 @@ async function submitManual(type, condition, area) {
         dam: condition !== 'intact' ? (adv.headline || adv.callout || 'Damaged / hazard warning') : '',
         conf: 1.0,
         f: condition === 'intact' ? 'batteries' : 'none',
-        st: adv.steps || adv.guidance || ['Tape terminals', 'Store in non-flammable container', 'Follow county disposal guidelines']
+        st: adv.steps || adv.guidance || ['Tape terminals', 'Store in non-flammable container', 'Follow county disposal guidelines'],
+        phone: adv.phone,
+        source: adv.source
       };
       if (Array.isArray(data.sites) && data.sites.length) {
         D = data.sites.map((x, i) => ({
@@ -821,9 +868,15 @@ async function say(q) {
     });
     if (res.ok) {
       const data = await res.json();
-      const text = (data.steps && data.steps.join(' ')) || data.title || '';
-      if (text) {
-        M.chat.push({ b: 1, t: text, a: 1 });
+      if (data.title || (data.steps && data.steps.length)) {
+        M.chat.push({
+          b: 1,
+          title: data.title,
+          steps: data.steps,
+          phone: data.phone,
+          showDropoffs: data.showDropoffs !== false,
+          t: (data.steps ? data.steps.join(' ') : data.title)
+        });
         cr();
         return;
       }
@@ -839,8 +892,22 @@ function cr() {
   const m = $('#ms');
   m.innerHTML = M.chat.map(x => `
     <div class="${x.b ? 'bw' : 'bu'}">
-      ${esc(x.t)}
-      ${x.a ? '<div class="sw" style="margin-top:8px"><button class="ch sm" data-a="chatfind">Show drop-off points</button></div>' : ''}
+      ${x.title ? `<b style="display:block;margin-bottom:6px;color:var(--tx)">${esc(x.title)}</b>` : ''}
+      ${x.steps && x.steps.length > 1
+        ? `<ol style="margin:4px 0;padding-left:18px">${x.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`
+        : `<p style="margin:0">${esc(x.t)}</p>`}
+      ${x.phone ? `
+        <div style="margin-top:8px">
+          <a href="tel:${esc(x.phone)}" class="cta sm row" style="display:inline-flex;padding:6px 14px;background:var(--rd);color:#fff;text-decoration:none;border-radius:18px">
+            📞 Call ${esc(x.phone)}
+          </a>
+        </div>
+      ` : ''}
+      ${x.showDropoffs || x.a ? `
+        <div class="sw" style="margin-top:8px">
+          <button class="ch sm" data-a="chatfind">Show drop-off points</button>
+        </div>
+      ` : ''}
     </div>
   `).join('');
   m.scrollTop = m.scrollHeight;
@@ -917,7 +984,14 @@ document.addEventListener('click', e => {
     sv();
     render();
   }
-  else if (a === 'out') { S.user = null; M.tab = 'create'; sv(); go('welcome'); render(); }
+  else if (a === 'out') {
+    updateAccount('sign-out').catch(() => {});
+    S.user = null;
+    M.tab = 'create';
+    sv();
+    go('welcome');
+    render();
+  }
   else if (a === 'clear') { S = { user: S.user, acc: S.acc, count: 0, hist: [], saved: [], theme: S.theme }; sv(); render(); }
   else if (a === 'fab') {
     const c = $('#chat');
@@ -980,8 +1054,37 @@ $('#logo').innerHTML = BAT(30) + '<span>Watt<b>2</b>Do</span>';
 $('#fab').innerHTML = MS(38);
 $('#cav').innerHTML = MS(32);
 
+async function initAccount() {
+  try {
+    const res = await fetch('/api/account');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        S.user = data.user;
+        sv();
+        render();
+      }
+    }
+  } catch(e) {}
+}
+
+async function updateAccount(action, credential) {
+  try {
+    const res = await fetch('/api/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, credential })
+    });
+    const data = await res.json();
+    return data.user;
+  } catch(e) {
+    return null;
+  }
+}
+
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
 render();
+initAccount();
 </script>
 </body>
 </html>
