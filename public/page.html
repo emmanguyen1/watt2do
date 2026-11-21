@@ -8,12 +8,21 @@
   <link rel="stylesheet" href="/screen.css">
   <script defer src="/static/map.js"></script>
   <script type="module" src="/screen.mjs"></script>
+  <script type="module" src="/account.mjs"></script>
 </head>
 <body>
   <header class="top">
     <a class="wordmark" href="/"><span aria-hidden="true">ϟ</span> Watt2Do</a>
     <a href="#guides">Official guides</a>
+    <button class="secondary" type="button" id="account-button">Sign in</button>
   </header>
+  <dialog id="account-dialog" class="surface" aria-labelledby="account-title">
+    <h2 id="account-title">Continue to Watt2Do</h2>
+    <p>Scan items and find drop-offs with or without an account.</p>
+    <div id="google-sign-in" hidden></div>
+    <p id="account-message" role="status"></p>
+    <button class="secondary" type="button" id="account-guest">Continue as guest</button>
+  </dialog>
   <main class="shell">
     <section class="hero">
       <div>
@@ -73,5 +82,17 @@
     <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics">County electronics guide</a>
     <a href="https://www.epa.gov/recycle/used-lithium-ion-batteries">EPA battery guide</a>
   </footer>
+  <script type="module" src="/watty.mjs"></script>
+  <button type="button" class="primary" id="watty-launcher" aria-controls="watty-panel" aria-expanded="false">Ask Watty</button>
+  <section id="watty-panel" aria-labelledby="watty-title" hidden>
+    <header><h2 id="watty-title">Watty</h2><button type="button" class="secondary" id="watty-close" aria-label="Close Watty">&#215;</button></header>
+    <div id="watty-log" role="log" aria-label="Chat messages">
+      <p>Ask how to handle a battery or where to recycle an electronic item.</p>
+    </div>
+    <form id="watty-form">
+      <input id="watty-input" aria-label="Your question" maxlength="500" placeholder="Where can I recycle AA batteries?" required>
+      <button type="submit" class="primary" id="watty-send">Send</button>
+    </form>
+  </section>
 </body>
 </html>

@@ -147,3 +147,15 @@ Facility information and handling guidelines are derived from official municipal
 ## Safety & Disclaimer
 
 Watt2Do provides location guidance and safety suggestions for informational purposes. Compromised lithium-ion batteries present severe thermal runaway and fire risks. Always contact recycling centers and municipal facilities in advance to confirm current acceptance policies, volume limits, operating hours, and handling fees.
+
+### Google sign-in and Watty in the Node app
+
+Run `npm ci` before starting the Node app. For Google sign-in, set
+`GOOGLE_SIGN_IN_CLIENT_ID` to a Web application OAuth client ID and authorize
+`http://localhost:3001` as a JavaScript origin. Guest access works without
+an OAuth client. Account sessions expire after eight hours or on restart.
+
+Watty uses the existing Gemini configuration to identify the item and its
+condition. Answers use the local disposal rules, and common item names work
+when Gemini is unavailable. The browser keeps recent questions for the
+current conversation.
