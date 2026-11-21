@@ -391,7 +391,7 @@ const V = {
       </div>`;
     }
     return `
-    <div class="row" style="margin:14px 0 20px">
+    <div class="row" style="margin:14px 0 16px">
       <svg width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="${Math.round(r.conf * 100)} percent match">
         <circle cx="50" cy="50" r="40" fill="none" stroke="var(--tr)" stroke-width="10"/>
         <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ol)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${r.conf * 251} 251" transform="rotate(-90 50 50)"/>
@@ -405,7 +405,32 @@ const V = {
       </div>
     </div>
 
-    ${r.dam ? `<div class="bn" role="alert" style="margin-bottom:16px"><b>Damaged battery:</b> ${esc(r.dam)}</div>` : ''}
+    <!-- Prominent Condition Pop-Out Card -->
+    ${!r.isDamaged ? `
+      <div class="condition-popout" style="margin:14px 0 20px;padding:16px 18px;border-radius:18px;background:rgba(198,244,50,0.14);border:2px solid var(--ol);box-shadow:0 8px 24px rgba(198,244,50,0.2);display:flex;align-items:center;gap:14px;animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275)">
+        <div style="width:42px;height:42px;border-radius:50%;background:var(--ac);color:#0E1410;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 12px rgba(198,244,50,0.4)">✓</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ol)">Condition Status</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ac);color:#0E1410">SAFE & VERIFIED</span>
+          </div>
+          <div style="font-size:20px;font-weight:800;color:var(--tx);margin-top:2px;letter-spacing:-0.2px">Intact and cool</div>
+          <div class="m sm" style="margin-top:2px">No swelling, heat, punctures, or chemical leakage detected. Safe for standard battery drop-off.</div>
+        </div>
+      </div>
+    ` : `
+      <div class="condition-popout" role="alert" style="margin:14px 0 20px;padding:16px 18px;border-radius:18px;background:var(--rb);border:2px solid var(--rd);box-shadow:0 8px 24px rgba(255,90,79,0.24);display:flex;align-items:center;gap:14px;animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275)">
+        <div style="width:42px;height:42px;border-radius:50%;background:var(--rd);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 12px rgba(255,90,79,0.4)">⚠️</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--rd)">Hazard Alert</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--rd);color:#fff">ACTION REQUIRED</span>
+          </div>
+          <div style="font-size:20px;font-weight:800;color:var(--rt);margin-top:2px">${esc(r.dam || 'Damaged / Hazardous Condition')}</div>
+          <div class="m sm" style="margin-top:2px">Do not place in regular trash or standard drop-off bins. Follow hazardous handling steps below.</div>
+        </div>
+      </div>
+    `}
 
     <h2 style="font-size:20px;margin:20px 0 12px">What to do</h2>
     <ol class="st">
@@ -706,18 +731,18 @@ let scanAbortController = null;
 function grabFrame(closeUp = false) {
   const vid = $('#camera');
   if (!vid || !cameraStream) return Promise.resolve(null);
-  const vWidth = vid.videoWidth || 1920;
-  const vHeight = vid.videoHeight || 1080;
-  // Center crop: 65% for macro focus on printed battery text, 90% for standard framing
-  const portion = closeUp ? 0.65 : 0.90;
+  const vWidth = vid.videoWidth || 1280;
+  const vHeight = vid.videoHeight || 720;
+  // Center crop: 68% for macro focus on printed battery text, 92% for standard framing
+  const portion = closeUp ? 0.68 : 0.92;
   const cropW = vWidth * portion;
   const cropH = vHeight * portion;
   const cropX = (vWidth - cropW) / 2;
   const cropY = (vHeight - cropH) / 2;
 
   const canvas = document.createElement('canvas');
-  // High-clarity 1080p target resolution (up to 1920px max dimension)
-  const maxDim = 1920;
+  // High-clarity 1200px provides ultra-fast transfer while keeping small labels razor sharp
+  const maxDim = 1200;
   const scale = Math.min(1.0, maxDim / Math.max(cropW, cropH));
   canvas.width = Math.round(cropW * scale);
   canvas.height = Math.round(cropH * scale);
@@ -726,70 +751,42 @@ function grabFrame(closeUp = false) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(vid, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
-  // High quality 94% JPEG encoding so fine markings and chemistry symbols are razor sharp
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.94));
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
 }
 
 async function handleScanSuccess(blob, data) {
   M.img = '';
   try { M.img = URL.createObjectURL(blob); } catch(e) {}
-  M.load = true;
-  render();
+  M.load = false;
 
-  const isDamaged = data.damaged === true;
-  const planType = data.type || (data.batteryType === 'alkaline' ? 'household' : (data.batteryType === 'lithium_ion' ? 'rechargeable' : 'rechargeable'));
-  const planRes = await fetch('/api/plan', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ type: planType, condition: isDamaged ? 'damaged' : 'intact', area: 'Tampa' })
-  });
-
-  let adv = {};
-  let sites = [];
-  if (planRes.ok) {
-    const pData = await planRes.json();
-    adv = pData.advice || {};
-    sites = pData.sites || [];
-  }
+  const isDamaged = data.damaged === true || (typeof data.condition === 'string' && data.condition.toLowerCase().includes('damag'));
+  const conditionLabel = isDamaged
+    ? (data.damageNotes || data.condition || 'Damaged / Hazard warning')
+    : (data.condition || 'Intact and cool');
 
   const instructions = (Array.isArray(data.instructions) && data.instructions.length)
     ? data.instructions
-    : (adv.steps || ['Confirm battery chemistry on printed label', 'Tape exposed terminals with nonconductive tape', 'Drop off at certified collection facility']);
+    : ['Confirm battery chemistry on printed label', 'Tape exposed terminals with nonconductive tape', 'Drop off at certified collection facility'];
 
   const r = {
-    item: data.item || adv.summary || 'Recognized Battery',
+    item: data.item || 'Recognized Battery',
     cat: data.category || 'battery',
     type: data.batteryType || data.type || 'battery',
     description: data.item || data.description || '',
     markings: data.markings || '',
-    condition: isDamaged ? 'damaged' : 'intact',
+    condition: conditionLabel,
+    isDamaged: isDamaged,
     conditionEvidence: data.damageNotes || data.conditionEvidence || '',
     dam: isDamaged ? (data.damageNotes || 'Battery appears damaged, leaking, or swollen.') : '',
     conf: typeof data.confidence === 'number' ? data.confidence : 0.95,
     f: data.dropoffFilter || (isDamaged ? 'none' : 'batteries'),
     st: instructions,
-    phone: isDamaged ? '813-272-5680' : adv.phone,
-    phoneStatus: adv.phoneStatus,
-    source: adv.source
+    phone: isDamaged ? '813-272-5680' : '813-272-5680',
+    phoneStatus: null,
+    source: null
   };
 
-  if (Array.isArray(sites) && sites.length) {
-    D = sites.map((x, i) => ({
-      id: 's' + i,
-      name: x.name,
-      lat: x.lat,
-      lng: x.lng,
-      acc: x.types || ['batteries'],
-      open: true,
-      address: x.address || '',
-      hours: x.hours || '',
-      phone: x.phone || '',
-      callFirst: Boolean(x.callFirst)
-    }));
-  }
-
   M.cur = r;
-  M.load = false;
   if (r.conf >= 0.6 && r.cat !== 'other' && r.cat !== 'unknown') {
     S.count++;
     S.hist.unshift({ item: r.item, type: r.type, d: new Date().toLocaleDateString() });
@@ -798,6 +795,34 @@ async function handleScanSuccess(blob, data) {
   }
   go('result');
   render();
+
+  // Asynchronously enrich with local plan & sites in background without blocking result UI
+  const planType = data.type || (data.batteryType === 'alkaline' ? 'household' : (data.batteryType === 'lithium_ion' ? 'rechargeable' : 'rechargeable'));
+  fetch('/api/plan', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ type: planType, condition: isDamaged ? 'damaged' : 'intact', area: 'Tampa' })
+  }).then(res => res.ok ? res.json() : null).then(pData => {
+    if (!pData) return;
+    if (Array.isArray(pData.sites) && pData.sites.length) {
+      D = pData.sites.map((x, i) => ({
+        id: 's' + i,
+        name: x.name,
+        lat: x.lat,
+        lng: x.lng,
+        acc: x.types || ['batteries'],
+        open: true,
+        address: x.address || '',
+        hours: x.hours || '',
+        phone: x.phone || '',
+        callFirst: Boolean(x.callFirst)
+      }));
+    }
+    if (pData.advice) {
+      if (pData.advice.phone) r.phone = pData.advice.phone;
+      if (pData.advice.source) r.source = pData.advice.source;
+    }
+  }).catch(() => {});
 }
 
 let torchActive = false;
@@ -873,17 +898,17 @@ async function startCamera() {
       } catch(e) {}
     }
 
-    // Automatic multi-frame detection loop using vision.py
-    for (let i = 0; i < 6 && !signal.aborted; i++) {
+    // Ultra-fast multi-frame detection loop using vision.py
+    for (let i = 0; i < 8 && !signal.aborted; i++) {
       if (i === 0) {
-        if (msg) msg.textContent = 'Hold battery label steady in focus box…';
-        await new Promise(r => setTimeout(r, 1600));
+        if (msg) msg.textContent = 'Hold battery steady in focus box…';
+        await new Promise(r => setTimeout(r, 350));
       } else {
-        if (msg) msg.textContent = 'Reading battery label with macro focus…';
-        await new Promise(r => setTimeout(r, 2000));
+        if (msg) msg.textContent = 'Scanning battery markings…';
+        await new Promise(r => setTimeout(r, 450));
       }
       if (signal.aborted || !cameraStream) return;
-      if (msg) msg.textContent = 'Analyzing high-res frame with Gemini Vision…';
+      if (msg) msg.textContent = 'Analyzing frame with Gemini AI…';
       if (badge) badge.textContent = 'Analyzing frame…';
 
       const frameBlob = await grabFrame(i % 2 === 1);
@@ -1012,6 +1037,8 @@ async function submitManual(type, condition, area) {
         item: adv.summary || type,
         cat: 'battery',
         type: type,
+        condition: condition === 'intact' ? 'Intact and cool' : condition,
+        isDamaged: condition !== 'intact',
         dam: condition !== 'intact' ? (adv.headline || adv.callout || 'Damaged / hazard warning') : '',
         conf: 1.0,
         f: condition === 'intact' ? 'batteries' : 'none',

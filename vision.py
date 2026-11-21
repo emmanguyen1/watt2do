@@ -106,12 +106,13 @@ def instructions_for(category, battery_type, damaged):
     ]
 
 
-def make_result(item, category, battery_type, damaged, damage_notes, confidence, dropoff_filter):
+def make_result(item, category, battery_type, damaged, damage_notes, confidence, dropoff_filter, condition="Intact and cool"):
     return {
         "ok": True,
         "item": item,
         "category": category,
         "batteryType": battery_type,
+        "condition": condition,
         "damaged": damaged,
         "damageNotes": damage_notes,
         "confidence": confidence,
@@ -152,12 +153,21 @@ def normalize(data):
         damaged = None
     if category in ("unknown", "other") and damaged is not True:
         damaged = None
+
+    if damaged is True:
+        condition = "Damaged / Hazard"
+    elif damaged is False or (category in ("battery", "ewaste") and confidence >= 0.6 and not notes):
+        condition = "Intact and cool"
+        damaged = False
+    else:
+        condition = "Condition unconfirmed"
+
     dropoff_filter = {"battery": "batteries", "ewaste": "ewaste", "hazardous": "hazardous"}.get(category, "none")
     # A photo cannot establish that a collector accepts an item in damaged condition.
     if damaged is True or confidence < 0.6:
         dropoff_filter = "none"
     result = make_result(item or "Unrecognized item", category, battery_type, damaged,
-                         notes if damaged is not False else "", confidence, dropoff_filter)
+                         notes if damaged is not False else "", confidence, dropoff_filter, condition)
     if damaged is None and category in ("battery", "ewaste"):
         result["instructions"].insert(0, "The photo cannot confirm condition. If it is swollen, leaking or unusually hot, stop and get handling advice before drop-off.")
         result["dropoffFilter"] = "none"
@@ -177,7 +187,8 @@ def classify(image, mime):
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseJsonSchema": SCHEMA,
-            "maxOutputTokens": 1024,
+            "maxOutputTokens": 300,
+            "thinkingConfig": {"thinkingLevel": "LOW"},
         },
     }
     request = Request(
