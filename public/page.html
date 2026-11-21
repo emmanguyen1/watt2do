@@ -12,9 +12,16 @@
 <body>
 <header class="hd">
   <a class="lg" href="#home" id="logo"></a>
+  <nav class="desk-nav" id="desk-nav" aria-label="Desktop Navigation">
+    <button data-a="go" data-v="home" class="nav-link">Home</button>
+    <button data-a="go" data-v="scan" class="nav-link">Scan</button>
+    <button data-a="go" data-v="find" class="nav-link">Find Drop-offs</button>
+    <button data-a="go" data-v="impact" class="nav-link">Impact</button>
+    <button data-a="fab" class="nav-link nav-watty">Ask Watty</button>
+  </nav>
   <div class="row" style="gap:8px">
     <button class="ib" data-a="theme" id="thb" aria-label="Switch between light and dark mode"></button>
-    <button class="ib" data-a="go" data-v="profile" id="prb" aria-label="User profile" hidden></button>
+    <button class="ib" data-a="go" data-v="profile" id="prb" aria-label="User profile"></button>
   </div>
 </header>
 <main class="w" id="app"></main>
@@ -136,33 +143,48 @@ const V = {
   },
 
   home() {
-    const h = S.hist.slice(0, 4);
+    const h = S.hist.slice(0, 6);
     return `
-    <h1>Hi, ${esc(S.user ? S.user.name : 'there')}</h1>
-    <p class="m" style="margin-bottom:20px">What do you want to do?</p>
-    <div class="v-stack">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+      <div>
+        <h1>Hi, ${esc(S.user ? S.user.name : 'there')}</h1>
+        <p class="m">What do you want to do?</p>
+      </div>
+      <button class="ch sm row" data-a="go" data-v="impact" style="margin-bottom:8px">
+        <span style="color:var(--ol)">${IC.bolt}</span>
+        <span><b>${S.count}</b> items saved</span>
+      </button>
+    </div>
+    <div class="home-cards">
       <button class="opt" data-a="go" data-v="find">
         <span style="color:var(--ol);display:flex;align-items:center">${IC.pin}</span>
-        <span><b>Find drop-off points</b><span class="m sm">Just see where to take it near you.</span></span>
+        <span><b>Find drop-off points</b><span class="m sm">Locate verified recycling facilities near you.</span></span>
       </button>
       <button class="opt p" data-a="go" data-v="scan">
         <span style="color:var(--ol);display:flex;align-items:center">${IC.cam}</span>
-        <span><b style="color:var(--ol)">Scan an item</b><span class="m sm">Identify it and get safe disposal steps.</span></span>
+        <span><b style="color:var(--ol)">Scan an item</b><span class="m sm">Identify battery chemistry and safety guidance.</span></span>
       </button>
     </div>
-    <div style="margin-top:28px">
-      <h2 style="font-size:20px;margin-bottom:12px">Recent scans</h2>
-      ${h.length ? h.map(x => `
-        <div class="recent-item" data-a="scanitem" data-item="${esc(x.item)}">
-          <div>
-            <b>${esc(x.item)}</b>
-            <div class="m sm">${esc(x.type || 'Battery')} &bull; ${esc(x.d)}</div>
-          </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--mu)"><path d="M9 18l6-6-6-6"/></svg>
+    <div style="margin-top:36px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:20px;margin:0">Recent scans</h2>
+        ${h.length ? `<button class="ch sm" data-a="go" data-v="profile">View all</button>` : ''}
+      </div>
+      ${h.length ? `
+        <div class="recent-grid">
+          ${h.map(x => `
+            <div class="recent-item" data-a="scanitem" data-item="${esc(x.item)}">
+              <div>
+                <b>${esc(x.item)}</b>
+                <div class="m sm">${esc(x.type || 'Battery')} &bull; ${esc(x.d)}</div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--mu)"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          `).join('')}
         </div>
-      `).join('') : `
-        <div class="cd" style="text-align:center;padding:24px">
-          <p class="m" style="margin-bottom:12px">No scans yet. Try scanning your first dead battery.</p>
+      ` : `
+        <div class="cd" style="text-align:center;padding:28px">
+          <p class="m" style="margin-bottom:14px">No scans yet. Try scanning your first dead battery.</p>
           <button class="cta" data-a="go" data-v="scan">Scan an item</button>
         </div>
       `}
@@ -171,25 +193,59 @@ const V = {
 
   scan() {
     return `
-    <div style="text-align:center;padding:20px 0">
-      <h1>Got a dead battery?</h1>
-      <p class="m" style="max-width:380px;margin:0 auto 30px">Snap a photo. We tell you what it is, how to handle it safely, and where to drop it off.</p>
-      
-      <button class="opt" data-a="scan" style="width:200px;height:200px;border-radius:50%;margin:0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid var(--ac);box-shadow:0 0 25px rgba(198,244,50,.35);background:var(--cd);gap:10px;cursor:pointer">
-        <span style="color:var(--ol)">${IC.cam}</span>
-        <b style="font-size:18px;color:var(--tx)">Scan an item</b>
-      </button>
+    <div class="scan-desktop-layout">
+      <div style="text-align:center;padding:20px 0">
+        <h1>Got a dead battery?</h1>
+        <p class="m" style="max-width:380px;margin:0 auto 24px">
+          Snap a photo. We tell you what it is, how to handle it safely, and where to drop it off.
+        </p>
 
-      <div style="margin-top:24px">
-        <button class="ch" data-a="scan" style="border-radius:24px;padding:10px 24px">Upload from gallery</button>
+        <div style="position:relative;width:210px;height:210px;margin:0 auto 20px;cursor:pointer" data-a="scan" role="button" aria-label="Take or upload battery photo">
+          <div style="width:100%;height:100%;border-radius:50%;border:4px solid var(--ol);display:flex;align-items:center;justify-content:center;background:var(--cd);box-shadow:0 0 30px rgba(198,244,50,0.2);position:relative;overflow:hidden">
+            <div style="color:var(--ol);position:relative;z-index:2">${IC.cam}</div>
+          </div>
+        </div>
+
+        <button class="cta" data-a="scan" style="margin-bottom:12px;padding:0 32px">
+          Scan an item
+        </button>
+        <div>
+          <button class="ch sm" data-a="scan">Upload from gallery</button>
+        </div>
+        <div style="margin-top:16px">
+          <button class="ch sm" data-a="go" data-v="manual">Select item manually</button>
+        </div>
       </div>
 
-      <div class="cd row" style="max-width:320px;margin:32px auto 0;justify-content:center;border-radius:24px">
-        ${BAT(22)} <span><b>${S.count}</b> items kept out of landfill</span>
-      </div>
-      
-      <div style="margin-top:20px">
-        <button class="ch sm" data-a="go" data-v="manual">Select item manually</button>
+      <div class="cd" style="padding:24px">
+        <h2 style="font-size:20px;margin-top:0">How Watt2Do Scanner Works</h2>
+        <ol class="st" style="margin-top:16px">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <b>Position battery label</b>
+              <div class="m sm">Ensure markings, chemistry (Li-ion, Alkaline), or voltage are visible.</div>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <b>Safety & Hazard Assessment</b>
+              <div class="m sm">Detects thermal risk, physical puncture, swelling, or active leakage.</div>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <b>Local Drop-off Routing</b>
+              <div class="m sm">Finds verified drop-off facilities in Hillsborough County accepting your item.</div>
+            </div>
+          </li>
+        </ol>
+        <div style="margin-top:20px;padding:12px;border-radius:12px;background:var(--tr)" class="row">
+          <span style="color:var(--ol)">${IC.bolt}</span>
+          <span class="sm"><b>${S.count} items</b> kept out of landfill by our community</span>
+        </div>
       </div>
     </div>`;
   },
@@ -320,54 +376,68 @@ const V = {
     }, 50);
 
     return `
-    <h2>Nearby drop-offs</h2>
-    <div class="cd row" style="margin:8px 0 12px">
-      ${IC.gps}
-      <span style="flex:1">${F.u ? 'GPS on: [your area]' : 'Showing the Tampa (USF) area'}</span>
-      <button class="ch sm" data-a="locate">${F.u ? 'Update' : 'Use my location'}</button>
-    </div>
-    ${F.msg ? `<p class="m sm" role="status">${F.msg}</p>` : ''}
-
-    <div class="sw" style="margin:0 0 14px">
-      <button class="ch" data-a="open" aria-pressed="${F.open}">Open now</button>
-      ${[['all', 'All'], ['batteries', 'Batteries'], ['ewaste', 'E-waste'], ['hazardous', 'Hazardous']].map(a => `
-        <button class="ch" data-a="flt" data-v="${a[0]}" aria-pressed="${F.f === a[0]}">${a[1]}</button>
-      `).join('')}
+    <div style="margin-bottom:16px">
+      <h2>Nearby drop-offs</h2>
+      <p class="m">Verified disposal and recycling sites across Hillsborough County.</p>
     </div>
 
-    <div class="mp" style="margin-bottom:14px">
-      <div id="map" style="width:100%;height:280px;border-radius:18px;background:var(--cd);border:1px solid var(--bd);">
-        <svg viewBox="0 0 400 260" role="img" aria-label="Drop-off locations map">
-          <rect width="400" height="260" rx="18" fill="var(--cd)" stroke="var(--bd)"/>
-          <path d="M0 70H400M0 190H400M110 0V260M290 0V260" stroke="var(--tr)" stroke-width="2"/>
-          <path d="M0 220L150 120L400 190" stroke="var(--bd)" stroke-width="6" fill="none"/>
-          ${pins}
-          <circle class="pl" cx="200" cy="130" r="14" fill="#3B82F6"/>
-          <circle cx="200" cy="130" r="8" fill="#3B82F6" stroke="#fff" stroke-width="3"/>
-        </svg>
+    <div class="map-page-layout">
+      <div>
+        <div class="cd row" style="margin-bottom:12px">
+          ${IC.gps}
+          <span style="flex:1">${F.u ? 'GPS on: your location' : 'Showing Tampa (USF area)'}</span>
+          <button class="ch sm" data-a="locate">${F.u ? 'Update' : 'Use my location'}</button>
+        </div>
+        ${F.msg ? `<p class="m sm" role="status" style="margin-bottom:10px">${F.msg}</p>` : ''}
+
+        <div class="sw" style="margin:0 0 14px">
+          <button class="ch" data-a="open" aria-pressed="${F.open}">Open now</button>
+          ${[['all', 'All'], ['batteries', 'Batteries'], ['ewaste', 'E-waste'], ['hazardous', 'Hazardous']].map(a => `
+            <button class="ch" data-a="flt" data-v="${a[0]}" aria-pressed="${F.f === a[0]}">${a[1]}</button>
+          `).join('')}
+        </div>
+
+        <div>
+          ${L.length ? L.map((d, i) => `
+            <div class="cd row" style="margin-bottom:10px;${F.sel === d.id ? 'border-color:var(--ol)' : ''}">
+              <span class="n">${i + 1}</span>
+              <button data-a="sel" data-v="${d.id}" style="flex:1;text-align:left;background:none;border:0;padding:4px 0;cursor:pointer">
+                <b>${esc(d.name)}</b>
+                <div class="m sm">${d.km.toFixed(1)} km &bull; ${d.open ? 'Open now' : 'Closed'}${d.hours ? ' &bull; ' + esc(d.hours) : ''}</div>
+                ${d.address ? `<div class="m sm" style="margin-top:2px">${esc(d.address)}</div>` : ''}
+              </button>
+              <button class="ib" data-a="save" data-v="${d.id}" aria-pressed="${S.saved.includes(d.id)}" aria-label="Save ${esc(d.name)}" style="${S.saved.includes(d.id) ? 'background:var(--ac);color:var(--ot)' : ''}">
+                ${IC.star}
+              </button>
+            </div>
+          `).join('') : '<p class="m">No drop-offs match this filter. Try another category.</p>'}
+        </div>
       </div>
-      <button class="ib lb" data-a="locate" aria-label="Use my location">${IC.gps}</button>
-    </div>
 
-    ${L.length ? L.map((d, i) => `
-      <div class="cd row" style="margin-bottom:10px;${F.sel === d.id ? 'border-color:var(--ol)' : ''}">
-        <span class="n">${i + 1}</span>
-        <button data-a="sel" data-v="${d.id}" style="flex:1;text-align:left;background:none;border:0;padding:4px 0;cursor:pointer">
-          <b>${esc(d.name)}</b>
-          <div class="m sm">${d.km.toFixed(1)} km &bull; ${d.open ? 'Open now' : 'Closed'}${d.hours ? ' &bull; ' + esc(d.hours) : ''}</div>
-          ${d.address ? `<div class="m sm" style="margin-top:2px">${esc(d.address)}</div>` : ''}
-        </button>
-        <button class="ib" data-a="save" data-v="${d.id}" aria-pressed="${S.saved.includes(d.id)}" aria-label="Save ${esc(d.name)}" style="${S.saved.includes(d.id) ? 'background:var(--ac);color:var(--ot)' : ''}">
-          ${IC.star}
-        </button>
+      <div class="map-sticky">
+        <div class="mp">
+          <div id="map" style="width:100%;height:320px;border-radius:18px;background:var(--cd);border:1px solid var(--bd);">
+            <svg viewBox="0 0 400 260" role="img" aria-label="Drop-off locations map">
+              <rect width="400" height="260" rx="18" fill="var(--cd)" stroke="var(--bd)"/>
+              <path d="M0 70H400M0 190H400M110 0V260M290 0V260" stroke="var(--tr)" stroke-width="2"/>
+              <path d="M0 220L150 120L400 190" stroke="var(--bd)" stroke-width="6" fill="none"/>
+              ${pins}
+              <circle class="pl" cx="200" cy="130" r="14" fill="#3B82F6"/>
+              <circle cx="200" cy="130" r="8" fill="#3B82F6" stroke="#fff" stroke-width="3"/>
+            </svg>
+          </div>
+          <button class="ib lb" data-a="locate" aria-label="Use my location">${IC.gps}</button>
+        </div>
       </div>
-    `).join('') : '<p class="m">No drop-offs match this filter. Try another category.</p>'}`;
+    </div>`;
   },
 
   impact() {
     const c = S.count;
     const l = Math.floor(c / 5) + 1;
     const f = c % 5;
+    const lbs = (c * 0.45).toFixed(1);
+    const co2 = (c * 1.2).toFixed(1);
     return `
     <div style="text-align:center;padding-top:10px">
       <h2>Your impact</h2>
@@ -379,15 +449,33 @@ const V = {
       </div>
       <p class="m">Level ${l} &bull; ${5 - f} more scans to Level ${l + 1}</p>
 
-      <div class="sw" style="justify-content:center;margin-top:20px">
-        ${[[1, 'First scan'], [5, '5 items'], [10, '10 items']].map(b => `
+      <div class="g" style="max-width:840px;margin:28px auto 0;text-align:left">
+        <div class="cd">
+          <div class="m sm">Toxic Heavy Metals Diverted</div>
+          <b style="font-size:28px;color:var(--ol)">~${lbs} lbs</b>
+          <div class="m sm" style="margin-top:4px">Lead, cadmium, nickel & cobalt securely recycled.</div>
+        </div>
+        <div class="cd">
+          <div class="m sm">Estimated Carbon Offset</div>
+          <b style="font-size:28px;color:var(--ol)">~${co2} kg CO₂</b>
+          <div class="m sm" style="margin-top:4px">Virgin mineral extraction & refining emissions saved.</div>
+        </div>
+        <div class="cd">
+          <div class="m sm">Thermal Runaway Shield</div>
+          <b style="font-size:28px;color:var(--ol)">100%</b>
+          <div class="m sm" style="margin-top:4px">Zero waste collection truck fires prevented.</div>
+        </div>
+      </div>
+
+      <div class="sw" style="justify-content:center;margin-top:24px">
+        ${[[1, 'First scan'], [5, '5 items'], [10, '10 items'], [25, '25 items']].map(b => `
           <span class="cd sm" style="${c >= b[0] ? 'border-color:var(--ol);font-weight:700' : 'opacity:.5'}">
             ${BAT(16)} ${b[1]}
           </span>
         `).join('')}
       </div>
 
-      <div style="margin-top:28px">
+      <div style="margin-top:32px">
         <button class="cta" data-a="go" data-v="scan">Scan another item</button>
       </div>
     </div>`;
@@ -445,24 +533,26 @@ const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 
 function render() {
   let v = location.hash.slice(1);
-  if (!S.user && v !== 'welcome') v = 'welcome';
-  else if (!V[v] || v === 'welcome' || v === 'load') v = 'home';
+  if (!v) v = S.user ? 'home' : 'welcome';
+  if (!V[v] || v === 'load') v = 'home';
   const x = M.load ? 'load' : v;
   const isLanding = (x === 'welcome');
 
   const appEl = $('#app');
-  const hdEl = document.querySelector('.hd');
   if (appEl) {
     appEl.classList.toggle('landing', isLanding);
     appEl.innerHTML = V[x]();
   }
-  if (hdEl) {
-    hdEl.classList.toggle('landing', isLanding);
-  }
 
+  // Sync desktop navigation active pill
+  document.querySelectorAll('#desk-nav .nav-link[data-v]').forEach(btn => {
+    btn.setAttribute('aria-current', btn.dataset.v === v ? 'page' : 'false');
+  });
+
+  // Sync mobile bottom navigation bar
   const n = $('#nav');
   if (n) {
-    n.hidden = isLanding || !S.user;
+    n.hidden = isLanding;
     n.innerHTML = [
       ['home', 'Home', IC.home],
       ['scan', 'Scan', IC.cam.replace(/44/g, '20')],
@@ -478,7 +568,6 @@ function render() {
 
   const prb = $('#prb');
   if (prb) {
-    prb.hidden = isLanding || !S.user;
     prb.innerHTML = IC.usr;
   }
 
