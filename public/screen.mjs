@@ -1,0 +1,292 @@
+const byId = id => document.getElementById(id);
+const video = byId('camera');
+const item = byId('item');
+const condition = byId('condition');
+const conditionReview = byId('condition-review');
+const conditionChecked = byId('condition-checked');
+let catalog;
+let scanning;
+let imageUrl;
+let planRequest;
+let map;
+let locationRequest = 0;
+
+function textElement(tag,text) {
+  const node = document.createElement(tag);
+  node.textContent = text;
+  return node;
+}
+function anchor(title,url) {
+  const node = textElement('a',title);
+  node.href = url;
+  if (String(url).startsWith('https:')) {
+    node.target = '_blank';
+    node.rel = 'noopener noreferrer';
+  }
+  return node;
+}
+async function api(path,options) {
+  const response = await fetch(path,options);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error);
+  return result;
+}
+
+try {
+  catalog = await api('/api/options');
+  for (const [label,choices] of Object.entries(catalog.groups)) {
+    const group = document.createElement('optgroup');
+    group.label = label;
+    for (const [value,name] of Object.entries(choices)) group.append(new Option(name,value));
+    item.append(group);
+  }
+  for (const [value,name] of Object.entries(catalog.conditions)) condition.add(new Option(name,value));
+  byId('submit-item').disabled = false;
+  byId('scan-controls').hidden = !catalog.vision;
+  if (!catalog.vision) byId('scan-message').textContent = 'Camera recognition is unavailable. You can choose a type below.';
+} catch {
+  byId('plan-message').textContent = 'Item types could not load. Refresh to try again.';
+}
+
+function clearPlan() {
+  locationRequest++;
+  planRequest?.abort();
+  map?.remove();
+  map = null;
+  byId('advice').hidden = true;
+  byId('results').hidden = true;
+  byId('map').hidden = true;
+  byId('map-message').textContent = '';
+  byId('plan-message').textContent = '';
+  byId('place-list').replaceChildren();
+}
+
+function stopScan(message = '') {
+  scanning?.controller.abort();
+  scanning?.stream?.getTracks().forEach(track => track.stop());
+  scanning = null;
+  video.srcObject = null;
+  byId('camera-box').hidden = true;
+  byId('stop').hidden = true;
+  byId('start').hidden = false;
+  if (message) byId('scan-message').textContent = message;
+}
+function beginScan() {
+  stopScan();
+  clearPlan();
+  byId('recognition').hidden = true;
+  if (imageUrl) URL.revokeObjectURL(imageUrl);
+  item.value = '';
+  condition.value = '';
+  conditionReview.hidden = true;
+  conditionChecked.checked = false;
+  conditionChecked.required = false;
+  scanning = {controller:new AbortController()};
+  return scanning;
+}
+function recognize(frame,result) {
+  if (imageUrl) URL.revokeObjectURL(imageUrl);
+  imageUrl = URL.createObjectURL(frame);
+  byId('snapshot').src = imageUrl;
+  byId('recognition-text').textContent = [result.description,result.markings && 'Visible label: ' + result.markings].filter(Boolean).join(' · ');
+  byId('recognition').hidden = false;
+  item.value = result.type === 'unsure' ? '' : result.type;
+  const suggestion = Object.hasOwn(catalog.conditions,result.condition) && result.condition !== 'intact' ? result.condition : 'unsure';
+  condition.value = suggestion;
+  conditionReview.hidden = false;
+  conditionChecked.checked = false;
+  conditionChecked.required = true;
+  const note = suggestion === 'unsure' ? 'The photo cannot confirm whether the item is intact and cool.'
+    : 'Photo suggestion: ' + catalog.conditions[suggestion] + (result.conditionEvidence ? ' (' + result.conditionEvidence + ').' : '.');
+  byId('condition-suggestion').textContent = note + ' Check the actual item from a safe distance and correct the selection if needed. If there is smoke or fire, move away and call 911.';
+}
+function classify(frame,signal) {
+  return api('/api/scan',{method:'POST',headers:{'Content-Type':frame.type},body:frame,signal});
+}
+function capture(closeUp) {
+  const portion = closeUp ? 0.7 : 1;
+  const width = video.videoWidth * portion;
+  const height = video.videoHeight * portion;
+  if (!width || !height) throw new Error('The camera did not return a frame. Try again or upload a photo.');
+  const scale = Math.min(1,1600 / Math.max(width,height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.getContext('2d').drawImage(video,(video.videoWidth-width)/2,(video.videoHeight-height)/2,width,height,0,0,canvas.width,canvas.height);
+  return new Promise((resolve,reject) => canvas.toBlob(
+    blob => blob ? resolve(blob) : reject(new Error('Could not capture the camera frame.')), 'image/jpeg',.9
+  ));
+}
+
+byId('start').addEventListener('click',async () => {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    byId('scan-message').textContent = 'Open Watt2Do on localhost or HTTPS for camera access, or upload a photo.';
+    return;
+  }
+  const session = beginScan();
+  const signal = session.controller.signal;
+  byId('start').hidden = true;
+  byId('stop').hidden = false;
+  byId('scan-message').textContent = 'Waiting for camera permission…';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1600}}});
+    if (signal.aborted) {
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    session.stream = stream;
+    for (const track of stream.getVideoTracks()) track.addEventListener('ended',() => {
+      if (!signal.aborted) stopScan('Camera disconnected. Start again or upload a photo.');
+    });
+    video.srcObject = stream;
+    byId('camera-box').hidden = false;
+    await video.play();
+    for (let i = 0; i < 3 && !signal.aborted; i++) {
+      byId('scan-message').textContent = i === 0 ? 'Center the item in the box.' : 'Keep the label in the box and steady.';
+      await new Promise(resolve => setTimeout(resolve,2000));
+      if (signal.aborted) return;
+      const frame = await capture(i === 1);
+      if (signal.aborted) return;
+      byId('scan-message').textContent = 'Checking the camera frame…';
+      const suggestion = await classify(frame,signal);
+      if (signal.aborted) return;
+      if (suggestion.type !== 'unsure' || byId('recognition').hidden) recognize(frame,suggestion);
+      if (!['unsure','unknownBattery'].includes(suggestion.type)) {
+        stopScan('Check the suggested type and condition below.');
+        condition.focus();
+        return;
+      }
+    }
+    if (!signal.aborted) stopScan('Scan finished. Choose or confirm the item type below.');
+  } catch (error) {
+    if (!signal.aborted) stopScan(error.name === 'NotAllowedError' ? 'Camera permission was denied. Upload a photo or choose a type.' : error.message);
+  }
+});
+byId('stop').addEventListener('click',() => stopScan('Scan stopped.'));
+window.addEventListener('pagehide',() => stopScan());
+document.addEventListener('visibilitychange',() => {
+  if (document.hidden && scanning?.stream) stopScan('Camera stopped when you left this tab.');
+});
+byId('photo').addEventListener('change',async event => {
+  const photo = event.target.files[0];
+  event.target.value = '';
+  if (!photo) return;
+  const {controller} = beginScan();
+  byId('scan-message').textContent = 'Checking your photo…';
+  try {
+    const result = await classify(photo,controller.signal);
+    if (controller.signal.aborted) return;
+    recognize(photo,result);
+    stopScan('Check the suggested type and condition below.');
+  } catch (error) {
+    if (!controller.signal.aborted) stopScan(error.message);
+  }
+});
+
+function showAdvice(advice) {
+  const box = byId('advice');
+  box.className = advice.severity || '';
+  const steps = document.createElement('ol');
+  steps.append(...advice.steps.map(step => textElement('li',step)));
+  box.replaceChildren(textElement('h3',advice.title),steps);
+  if (advice.phone) {
+    const phone = anchor('Call Hillsborough County at ' + advice.phone,'tel:' + advice.phone);
+    phone.className = 'button secondary';
+    box.append(textElement('p',advice.phoneStatus),phone);
+  }
+  if (advice.alternative) {
+    const row = document.createElement('p');
+    row.append(anchor(advice.alternative.label,advice.alternative.url));
+    box.append(row);
+  }
+  const sources = document.createElement('details');
+  sources.append(textElement('summary','Source'),anchor('Read official guidance',advice.source));
+  box.append(sources);
+  box.hidden = false;
+}
+
+function directions(site) {
+  return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(site.address);
+}
+function showSites(sites) {
+  for (const site of sites) {
+    const card = textElement('li','');
+    card.append(textElement('h3',site.name),textElement('p',site.address),
+      textElement('p',site.miles.toFixed(1) + ' mi · ' + site.hours),textElement('p',site.notes));
+    if (site.event) card.append(textElement('p','Additional HHW event: ' + site.event + ' each month, 8 am–2 pm'));
+    if (site.phone) card.append(anchor('Call ' + site.phone,'tel:' + site.phone));
+    if (!site.callFirst) card.append(anchor('Directions',directions(site)));
+    card.append(anchor('Acceptance details',site.source));
+    byId('place-list').append(card);
+  }
+  if (!sites.length || !window.L) return;
+  byId('map').hidden = false;
+  try {
+    map = window.L.map('map',{scrollWheelZoom:false});
+    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    for (const site of sites) {
+      const popup = document.createElement('div');
+      popup.append(textElement('strong',site.name),textElement('p',site.address));
+      popup.append(site.callFirst ? anchor('Call before visiting','tel:' + site.phone) : anchor('Directions',directions(site)));
+      window.L.marker([site.lat,site.lng],{title:site.name,alt:site.name}).addTo(map).bindPopup(popup);
+    }
+    map.fitBounds(sites.map(site => [site.lat,site.lng]),{padding:[22,22],maxZoom:14});
+  } catch {
+    map?.remove();
+    map = null;
+    byId('map').hidden = true;
+  }
+}
+
+async function loadPlan(position) {
+  if (!item.value || !condition.value || (!conditionReview.hidden && !conditionChecked.checked)) return;
+  stopScan();
+  clearPlan();
+  planRequest = new AbortController();
+  const signal = planRequest.signal;
+  byId('plan-message').textContent = 'Finding the right next step…';
+  try {
+    const result = await api('/api/plan',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:item.value,condition:condition.value,area:byId('area').value,position}),signal
+    });
+    if (signal.aborted) return;
+    showAdvice(result.advice);
+    byId('plan-message').textContent = '';
+    if (condition.value !== 'intact' || ['unsure','unknownBattery'].includes(item.value)) return;
+    byId('results').hidden = false;
+    byId('area-form').hidden = false;
+    byId('locator').hidden = !result.advice.locator;
+    byId('map-message').textContent = result.areaError || (result.sites.length
+      ? result.sites.length + ' nearby options for ' + result.area + '.'
+      : 'No eligible locations found in this directory near ' + result.area + '.');
+    showSites(result.sites);
+  } catch (error) {
+    if (!signal.aborted) byId('plan-message').textContent = error.message;
+  }
+}
+for (const field of [item,condition]) field.addEventListener('change',() => {
+  conditionChecked.checked = false;
+  stopScan();
+  clearPlan();
+});
+conditionChecked.addEventListener('change',() => {
+  if (!conditionChecked.checked) clearPlan();
+});
+for (const id of ['item-form','area-form']) byId(id).addEventListener('submit',event => {
+  event.preventDefault();
+  loadPlan();
+});
+byId('near-me').addEventListener('click',() => {
+  const version = ++locationRequest;
+  const unavailable = () => {
+    if (version === locationRequest) byId('map-message').textContent = 'Location is unavailable. Use Tampa or enter a supported ZIP.';
+  };
+  if (!navigator.geolocation) return unavailable();
+  byId('map-message').textContent = 'Waiting for location permission…';
+  navigator.geolocation.getCurrentPosition(({coords}) => {
+    if (version === locationRequest) loadPlan([coords.latitude,coords.longitude]);
+  },unavailable,{timeout:10000});
+});
