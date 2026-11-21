@@ -123,7 +123,7 @@ async function scan(request) {
 
   visionResult.type = mappedType;
   visionResult.description = visionResult.item || 'Recognized Item';
-  visionResult.condition = visionResult.damaged === true ? 'damaged' : (visionResult.damaged === false ? 'intact' : 'unsure');
+  visionResult.condition = visionResult.condition || (visionResult.damaged === true ? 'damaged' : (visionResult.damaged === false ? 'Intact and cool' : 'unsure'));
   visionResult.conditionEvidence = visionResult.damageNotes || '';
 
   return visionResult;
