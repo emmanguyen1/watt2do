@@ -6,6 +6,32 @@
   <meta name="description" content="Find safer battery and electronics recycling options around Hillsborough County.">
   <title>Watt2Do | Find a recycling drop-off</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
+  <script>
+    (() => {
+      const key = 'watt2do.theme';
+      const system = matchMedia('(prefers-color-scheme: dark)');
+      let choice = 'system';
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved === 'light' || saved === 'dark') choice = saved;
+      } catch {}
+      const apply = () => {
+        document.documentElement.dataset.theme = choice === 'system'
+          ? (system.matches ? 'dark' : 'light') : choice;
+      };
+      apply();
+      system.addEventListener('change',apply);
+      document.addEventListener('DOMContentLoaded',() => {
+        const control = document.getElementById('theme-choice');
+        control.value = choice;
+        control.addEventListener('change',() => {
+          choice = control.value;
+          try { localStorage.setItem(key,choice); } catch {}
+          apply();
+        });
+      });
+    })();
+  </script>
   <link rel="stylesheet" href="/screen.css">
   <script defer src="/static/map.js"></script>
   <script type="module" src="/screen.mjs"></script>
@@ -20,7 +46,14 @@
       <a href="#identify">Drop-offs</a>
       <a href="#guides">Official guides</a>
     </nav>
-    <button class="secondary" type="button" id="account-button">Sign in</button>
+    <div class="header-settings">
+      <select id="theme-choice" aria-label="Color theme">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+      <button class="secondary" type="button" id="account-button">Sign in</button>
+    </div>
   </header>
   <dialog id="account-dialog" class="surface" aria-labelledby="account-title">
     <h2 id="account-title">Continue to Watt2Do</h2>

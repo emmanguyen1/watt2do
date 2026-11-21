@@ -254,7 +254,7 @@
           console.error('Watt2DoMap initialization error:', err);
           // Show friendly fallback message in container without breaking page
           container.innerHTML = `
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:220px; background:#f3f4f6; color:#4b5563; padding:16px; text-align:center; border-radius:8px;">
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:220px; background:var(--map-fallback, #f3f4f6); color:var(--subtle, #4b5563); padding:16px; text-align:center; border-radius:8px;">
               <p style="font-weight:600; margin-bottom:8px;">Map view unavailable</p>
               <p style="font-size:13px; max-width:300px; margin:0;">Nearby drop-offs are listed below. (Check Maps API key configuration).</p>
             </div>
