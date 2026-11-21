@@ -3,228 +3,430 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Watt2Do — Smart Battery & E-Waste Safety</title>
-  <meta name="description" content="AI-powered battery identification, damage detection, and safe drop-off locator.">
+  <title>Watt2Do — Watt's Next? Watt2Do.</title>
+  <meta name="description" content="AI battery identification, safety damage detection, and drop-off locator.">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="header-brand">
-        <div class="logo-icon">⚡</div>
-        <div class="logo-text">
-          <h1 class="app-title">Watt2Do</h1>
-          <p class="app-tagline">Watt's Next? Watt2Do.</p>
-        </div>
+<body class="dark-theme">
+  <div class="mobile-frame">
+    <!-- Top App Bar -->
+    <header class="app-bar">
+      <div class="brand-lockup" id="brand-home-btn" role="button" tabindex="0">
+        <svg class="brand-battery-icon" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="22" height="14" rx="3" stroke="#C6F432" stroke-width="2"/>
+          <path d="M25 5.5V10.5" stroke="#C6F432" stroke-width="2" stroke-linecap="round"/>
+          <path d="M13 3L8 9H13L11 13L17 7H12L13 3Z" fill="#C6F432"/>
+        </svg>
+        <span class="brand-name">Watt2Do</span>
       </div>
-      <div class="impact-counter-badge" id="impact-counter-badge" title="Total batteries and hazardous items safely diverted from landfills">
-        <span class="impact-icon">🌱</span>
-        <span class="impact-text"><strong id="impact-count">0</strong> items kept out of landfill</span>
-      </div>
+
+      <!-- Quick profile button on header -->
+      <button id="header-profile-btn" class="icon-avatar-btn" aria-label="Profile">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </button>
     </header>
 
-    <!-- Error Alert Toast/Banner -->
-    <div id="error-banner" class="error-banner hidden" role="alert">
-      <div class="error-content">
-        <span class="error-icon">⚠️</span>
-        <span id="error-message" class="error-message">Something went wrong. Please try again.</span>
-      </div>
-      <button id="error-dismiss-btn" class="error-dismiss-btn" aria-label="Dismiss">&times;</button>
+    <!-- Error Toast Notification -->
+    <div id="error-toast" class="error-toast hidden" role="alert">
+      <span class="error-toast-icon">⚠️</span>
+      <span id="error-toast-text" class="error-toast-text">Something went wrong.</span>
+      <button id="error-dismiss-btn" class="error-toast-close">&times;</button>
     </div>
 
-    <!-- MAIN APP CONTENT (Three States) -->
-    <main class="app-main">
+    <!-- Hidden Camera & File Inputs -->
+    <input type="file" id="camera-input" accept="image/*" capture="environment" class="sr-only">
+    <input type="file" id="gallery-input" accept="image/*" class="sr-only">
 
-      <!-- ============================================== -->
-      <!-- STATE 1: START SCREEN                          -->
-      <!-- ============================================== -->
-      <section id="state-start" class="view-state state-start">
-        <div class="hero-card">
-          <div class="hero-badge">Safety First</div>
-          <h2 class="hero-headline">Never trash a dead battery.</h2>
-          <p class="hero-subtext">
-            Lithium and hazardous batteries cause explosive fires in garbage trucks and recycling facilities. Snap a quick photo to check for damage and find certified local drop-offs.
+    <!-- ================================================================== -->
+    <!-- VIEW SCREENS CONTAINER                                             -->
+    <!-- ================================================================== -->
+    <main class="content-viewport">
+
+      <!-- SCREEN 1: SCAN / HOME (Mockup Page 3 & 7) -->
+      <section id="view-scan" class="screen-view active">
+        <div class="hero-intro">
+          <h1 class="hero-title">Got a dead battery?</h1>
+          <p class="hero-desc">
+            Snap a photo. We tell you what it is, how to handle it safely, and where to drop it off.
           </p>
         </div>
 
-        <div class="scan-action-area">
-          <!-- Hidden camera file input -->
-          <input
-            type="file"
-            id="camera-input"
-            accept="image/*"
-            capture="environment"
-            class="visually-hidden-input"
-            aria-label="Take or upload battery photo"
-          >
-
-          <!-- Large Scan Button -->
-          <button id="scan-trigger-btn" class="btn btn-primary btn-scan">
-            <span class="btn-scan-icon">📷</span>
-            <span class="btn-scan-label">Scan an Item</span>
-            <span class="btn-scan-sublabel">Take photo with camera</span>
+        <!-- Big Circular Scan Button -->
+        <div class="scan-circle-container">
+          <button id="btn-main-scan" class="scan-main-btn" aria-label="Scan an item">
+            <div class="scan-ring-pulse"></div>
+            <div class="scan-circle-inner">
+              <svg class="camera-svg-icon" viewBox="0 0 24 24" fill="none" stroke="#C6F432" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+            </div>
           </button>
-
-          <!-- File upload alternative for laptops / testing -->
-          <div class="upload-alt">
-            <button id="file-trigger-btn" class="btn-link">or select a photo from files</button>
-          </div>
+          <span class="scan-circle-label">Scan an item</span>
         </div>
 
-        <!-- Quick Guidance Tips -->
-        <div class="tips-card">
-          <h3 class="tips-title">💡 Tips for best results:</h3>
-          <ul class="tips-list">
-            <li>Ensure bright lighting and focus on the item</li>
-            <li>Capture warning labels, text, or battery terminals</li>
-            <li>Include any swelling, dents, or leaking areas</li>
-          </ul>
+        <!-- Upload from gallery button -->
+        <div class="scan-actions-group">
+          <button id="btn-gallery-upload" class="pill-btn-secondary">
+            Upload from gallery
+          </button>
         </div>
-      </section>
 
-      <!-- ============================================== -->
-      <!-- STATE 2: LOADING SCREEN                        -->
-      <!-- ============================================== -->
-      <section id="state-loading" class="view-state state-loading hidden">
-        <div class="loading-card">
-          <div class="scanner-visual">
-            <div class="pulse-ring"></div>
-            <div class="pulse-icon">⚡</div>
-          </div>
-          <h2 class="loading-title">Analyzing Item...</h2>
-          <p id="loading-status-text" class="loading-subtitle">Inspecting battery chemistry with Gemini Vision</p>
-          <div class="loading-progress-bar">
-            <div class="loading-progress-fill"></div>
-          </div>
-          <p class="loading-note">Checking for swelling, corrosion, and safety hazards</p>
+        <!-- Bottom Impact Counter Pill -->
+        <div class="bottom-impact-bar">
+          <button id="btn-open-impact" class="impact-pill" aria-label="View impact tracker">
+            <svg class="impact-bolt" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="5" width="16" height="14" rx="2" stroke="#C6F432" stroke-width="2"/>
+              <path d="M20 9v6" stroke="#C6F432" stroke-width="2" stroke-linecap="round"/>
+              <path d="M10 8L7 12h4l-1 4 4-5h-3l1-3z" fill="#C6F432"/>
+            </svg>
+            <span class="impact-pill-text"><span id="home-impact-count">0</span> items kept out of landfill</span>
+          </button>
         </div>
       </section>
 
-      <!-- ============================================== -->
-      <!-- STATE 3: RESULT SCREEN                         -->
-      <!-- ============================================== -->
-      <section id="state-result" class="view-state state-result hidden">
+      <!-- SCREEN 2: LOADING SCREEN -->
+      <section id="view-loading" class="screen-view">
+        <div class="loading-center-box">
+          <div class="radar-scan-graphic">
+            <div class="radar-scanner-line"></div>
+            <svg class="radar-battery-svg" viewBox="0 0 32 32" fill="none">
+              <rect x="6" y="8" width="18" height="18" rx="3" stroke="#C6F432" stroke-width="2"/>
+              <path d="M26 13v8" stroke="#C6F432" stroke-width="2" stroke-linecap="round"/>
+              <path d="M15 11l-4 6h4l-2 5 6-7h-4l2-4z" fill="#C6F432"/>
+            </svg>
+          </div>
+          <h2 class="loading-main-heading">Analyzing Battery...</h2>
+          <p id="loading-sub-message" class="loading-sub-text">Inspecting damage & chemistry with Gemini Vision</p>
+        </div>
+      </section>
 
-        <!-- Low Confidence State -->
-        <div id="low-confidence-box" class="card low-confidence-card hidden">
+      <!-- SCREEN 3: RESULT (Mockup Page 4 & 20) -->
+      <section id="view-result" class="screen-view">
+
+        <!-- Low Confidence Box (< 0.6) -->
+        <div id="low-confidence-banner" class="low-conf-card hidden">
           <div class="low-conf-icon">🔍</div>
           <h2 class="low-conf-title">Not sure, try a closer photo</h2>
-          <p class="low-conf-text">
-            We couldn't clearly identify this item or its battery chemistry. Please take a closer photo with good lighting and clear view of labels.
+          <p class="low-conf-desc">
+            We couldn't clearly identify this item or read its safety markings. Please retake with bright lighting and focus on the labels or terminals.
           </p>
-          <button id="retake-low-conf-btn" class="btn btn-primary btn-retake">
-            <span>📷 Retake Photo</span>
+          <button id="btn-retake-photo" class="pill-btn-primary">
+            Retake Photo
           </button>
         </div>
 
         <!-- Confident Result Content -->
-        <div id="confident-result-box" class="result-details">
+        <div id="confident-result-content" class="result-layout">
 
-          <!-- Item Identification Header -->
-          <div class="card item-header-card">
-            <div class="item-title-row">
-              <h2 id="result-item-name" class="result-item-name">AA Alkaline Battery</h2>
-              <span id="result-confidence-pill" class="confidence-pill" title="AI Confidence">95% match</span>
+          <!-- Header Match Info (Ring + Name + Type) -->
+          <div class="result-header-row">
+            <!-- Progress Ring -->
+            <div class="match-ring-box">
+              <svg class="ring-svg" viewBox="0 0 44 44">
+                <circle class="ring-bg" cx="22" cy="22" r="18" />
+                <circle id="match-ring-progress" class="ring-fill" cx="22" cy="22" r="18" />
+              </svg>
+              <span id="match-percent-text" class="match-percent-label">90%</span>
             </div>
-            <div class="badge-row">
-              <span id="result-category-badge" class="badge badge-category">battery</span>
-              <span id="result-battery-type-badge" class="badge badge-type">alkaline</span>
+
+            <!-- Item Name & Chemistry Tag -->
+            <div class="item-title-meta">
+              <h2 id="res-item-title" class="res-item-title">Phone battery</h2>
+              <div class="res-tags-row">
+                <span id="res-battery-pill" class="lime-outline-pill">Lithium-ion</span>
+                <span id="res-category-pill" class="subtle-pill">battery</span>
+              </div>
             </div>
           </div>
 
-          <!-- Red Warning Banner for Damaged Items -->
-          <div id="damage-warning-banner" class="damage-warning-banner hidden" role="alert">
-            <div class="damage-banner-header">
-              <span class="damage-banner-icon">🚨</span>
-              <h3 class="damage-banner-title">CRITICAL SAFETY ALERT: DAMAGED BATTERY</h3>
+          <!-- Red Safety Warning Banner (Shown when damaged is true) -->
+          <div id="res-damage-banner" class="hazard-red-banner hidden">
+            <div class="hazard-icon-col">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
             </div>
-            <p id="damage-notes-text" class="damage-notes-text">
-              Physical damage, swelling, or corrosion detected. Handle with extreme caution.
-            </p>
-            <div class="damage-guidance-pill">
-              ⚠️ Keep away from heat and flammable items. Store in a fireproof container or bucket of sand. Do not charge or puncture.
+            <div class="hazard-text-col">
+              <span class="hazard-bold-title">Damaged battery: <span id="res-damage-detail">swollen</span>.</span>
+              <span class="hazard-sub-info">Keep away from heat. Fire risk.</span>
             </div>
           </div>
 
-          <!-- Safety & Disposal Instructions -->
-          <div class="card instructions-card">
-            <div class="card-header-row">
-              <span class="card-icon">🛡️</span>
-              <h3 class="card-title">Safety & Disposal Instructions</h3>
-            </div>
-            <ol id="instructions-list" class="instructions-list">
+          <!-- Safety Instructions List (Numbered pills 1, 2, 3) -->
+          <div class="steps-container">
+            <ul id="res-steps-list" class="steps-pill-list">
               <!-- Rendered dynamically -->
-            </ol>
+              <li class="step-pill-item">
+                <span class="step-num-circle">1</span>
+                <span class="step-text">Tape over the terminals</span>
+              </li>
+              <li class="step-pill-item">
+                <span class="step-num-circle">2</span>
+                <span class="step-text">Store in a non-flammable container</span>
+              </li>
+              <li class="step-pill-item">
+                <span class="step-num-circle">3</span>
+                <span class="step-text">Never put it in household trash</span>
+              </li>
+            </ul>
           </div>
 
-          <!-- Regular Bin Notification (when dropoffFilter === "none") -->
-          <div id="regular-bin-box" class="card regular-bin-card hidden">
-            <div class="regular-bin-icon">🗑️</div>
-            <div class="regular-bin-content">
-              <h3 class="regular-bin-title">Safe for Regular Disposal</h3>
-              <p class="regular-bin-text">
-                This item does not contain hazardous battery chemistry and can go in your standard household trash or regular curbside recycling bin according to local guidelines.
-              </p>
+          <!-- Regular Bin Safe Message (when dropoffFilter === "none") -->
+          <div id="regular-bin-notice" class="regular-bin-box hidden">
+            <span class="bin-icon">🗑️</span>
+            <div class="bin-text-wrap">
+              <strong>Safe for regular bin</strong>
+              <p>This item does not contain hazardous battery chemistry and can go in your regular municipal trash or recycling bin.</p>
             </div>
           </div>
 
-          <!-- Drop-off Locations & Map Section (when dropoffFilter !== "none") -->
-          <div id="dropoff-section" class="card dropoff-section">
-            <div class="dropoff-header">
-              <div class="dropoff-title-wrap">
-                <span class="card-icon">📍</span>
-                <h3 class="card-title">Nearby Drop-off Locations</h3>
-              </div>
-              <span id="dropoff-filter-tag" class="filter-pill">Batteries</span>
-            </div>
-
-            <p id="location-status-indicator" class="location-status-text">
-              Finding nearest certified recycling drop-offs...
-            </p>
-
-            <!-- Fixed Height Map Container required by Person B's map.js -->
-            <div id="map" class="map-container" aria-label="Drop-off locations map"></div>
-
-            <!-- List of Nearby Drop-offs -->
-            <div class="dropoffs-list-container">
-              <h4 class="dropoffs-list-heading">Certified Locations</h4>
-              <div id="dropoffs-loading" class="dropoffs-loading">
-                <span class="mini-spinner"></span> Loading nearby centers...
-              </div>
-              <div id="dropoffs-empty" class="dropoffs-empty hidden">
-                <p>No drop-off locations found within range. Check county hazardous waste guidelines.</p>
-              </div>
-              <ul id="dropoffs-list" class="dropoffs-list">
-                <!-- Drop-off location cards rendered dynamically -->
-              </ul>
-            </div>
-          </div>
-
-          <!-- Scan Another Button -->
-          <div class="bottom-actions">
-            <button id="scan-another-btn" class="btn btn-secondary btn-full">
-              <span>🔄 Scan Another Item</span>
+          <!-- Primary CTA Button -->
+          <div class="result-cta-footer">
+            <button id="btn-find-dropoffs" class="pill-btn-primary btn-cta-main">
+              Find drop-off near me
+            </button>
+            <button id="btn-rescan-item" class="btn-text-link">
+              Scan another item
             </button>
           </div>
-
         </div>
+      </section>
+
+      <!-- SCREEN 4: NEARBY DROP-OFFS (Mockup Page 5 & 18) -->
+      <section id="view-dropoffs" class="screen-view">
+        <div class="screen-heading-row">
+          <h2 class="section-title">Nearby drop-offs</h2>
+        </div>
+
+        <!-- Location GPS Status Bar -->
+        <div class="gps-status-row">
+          <div class="gps-left">
+            <svg class="gps-target-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C6F432" stroke-width="2">
+              <circle cx="12" cy="12" r="7"/>
+              <line x1="12" y1="1" x2="12" y2="4"/>
+              <line x1="12" y1="20" x2="12" y2="23"/>
+              <line x1="1" y1="12" x2="4" y2="12"/>
+              <line x1="20" y1="12" x2="23" y2="12"/>
+            </svg>
+            <span id="gps-area-label" class="gps-label">GPS on: [USF / Tampa area]</span>
+          </div>
+          <button id="btn-update-location" class="gps-update-pill">Update</button>
+        </div>
+
+        <!-- Filter Chips Row (Open now, Batteries, E-waste) -->
+        <div class="filter-chips-row">
+          <button id="filter-chip-open" class="filter-chip active">Open now</button>
+          <button id="filter-chip-batteries" class="filter-chip">Batteries</button>
+          <button id="filter-chip-ewaste" class="filter-chip">E-waste</button>
+        </div>
+
+        <!-- Map Container (Person B contract requires div#map with fixed height) -->
+        <div class="map-card-wrapper">
+          <div id="map" class="styled-map-container" aria-label="Drop-off locations map"></div>
+        </div>
+
+        <!-- Numbered Drop-off Places List (Cards 1, 2, 3) -->
+        <div class="dropoff-cards-section">
+          <div id="places-loading-indicator" class="places-loading-indicator">
+            <span class="inline-spinner"></span> Locating certified centers...
+          </div>
+          <div id="places-empty-state" class="places-empty-state hidden">
+            <p>No facilities found nearby. Showing county hazardous waste drop-off.</p>
+          </div>
+
+          <ul id="places-cards-list" class="places-cards-list">
+            <!-- Cards rendered dynamically -->
+          </ul>
+        </div>
+
+        <!-- Bottom Impact Link -->
+        <div class="dropoffs-footer-actions">
+          <button id="btn-dropoffs-done" class="pill-btn-primary btn-cta-main">
+            View your impact
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 5: IMPACT & GAMIFICATION (Mockup Page 6 & 21) -->
+      <section id="view-impact" class="screen-view">
+        <div class="screen-heading-row">
+          <h2 class="section-title">Your impact</h2>
+        </div>
+
+        <!-- Big Lime Counter -->
+        <div class="impact-hero-stat">
+          <span id="impact-big-number" class="impact-giant-num">0</span>
+          <span class="impact-giant-desc">items kept out of landfill</span>
+        </div>
+
+        <!-- Visual Battery Gauge (5 blocks) -->
+        <div class="battery-level-gauge-wrap">
+          <div class="battery-visual-gauge">
+            <div class="battery-blocks-track">
+              <div class="gauge-block" id="gb-1"></div>
+              <div class="gauge-block" id="gb-2"></div>
+              <div class="gauge-block" id="gb-3"></div>
+              <div class="gauge-block" id="gb-4"></div>
+              <div class="gauge-block" id="gb-5"></div>
+            </div>
+            <div class="battery-terminal-pip"></div>
+          </div>
+          <div id="battery-level-subtitle" class="battery-level-label">Level 1 &bull; 1 scan to Level 2</div>
+        </div>
+
+        <!-- Milestone Badges Grid -->
+        <div class="milestones-row">
+          <div class="milestone-badge" id="ms-first">
+            <span class="ms-icon">⚡</span>
+            <span class="ms-label">First scan</span>
+          </div>
+          <div class="milestone-badge" id="ms-5items">
+            <span class="ms-icon">⚡</span>
+            <span class="ms-label">5 items</span>
+          </div>
+          <div class="milestone-badge" id="ms-10items">
+            <span class="ms-icon">⚡</span>
+            <span class="ms-label">10 items</span>
+          </div>
+        </div>
+
+        <!-- Scan Another Button -->
+        <div class="impact-cta-wrap">
+          <button id="btn-impact-scan-another" class="pill-btn-primary btn-cta-main">
+            Scan another item
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 6: PROFILE (Mockup Page 11 & 22) -->
+      <section id="view-profile" class="screen-view">
+        <div class="profile-header-card">
+          <div class="profile-big-avatar">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C6F432" stroke-width="1.8">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h2 class="profile-name">USF Eco Warrior</h2>
+          <p class="profile-email">warrior@usf.edu</p>
+        </div>
+
+        <!-- Quick 2-Column Stats -->
+        <div class="profile-stat-tiles">
+          <div class="stat-tile">
+            <span class="stat-big-val" id="profile-items-count">0</span>
+            <span class="stat-val-desc">items kept out of landfill</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-big-val" id="profile-level-val">Lv 1</span>
+            <span class="stat-val-desc" id="profile-next-scan-desc">1 more scan to Lv 2</span>
+          </div>
+        </div>
+
+        <!-- Profile Menu List -->
+        <div class="profile-menu-list">
+          <button class="profile-menu-item" id="btn-menu-history">
+            <span>Scan history</span>
+            <span class="menu-chevron">&rsaquo;</span>
+          </button>
+          <button class="profile-menu-item" id="btn-menu-saved">
+            <span>Saved drop-off points</span>
+            <span class="menu-chevron">&rsaquo;</span>
+          </button>
+          <button class="profile-menu-item" id="btn-menu-settings">
+            <span>Settings</span>
+            <span class="menu-chevron">&rsaquo;</span>
+          </button>
+        </div>
+
+        <button class="sign-out-btn" id="btn-sign-out">Sign out</button>
       </section>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="app-footer">
-      <p class="footer-text">
-        Watt2Do &bull; HackJam 26 &bull; USF &amp; Tampa Sustainability Initiative
-      </p>
-    </footer>
+    <!-- ================================================================== -->
+    <!-- FLOATING WATTY AI BUDDY & CHAT MODAL (Mockup Page 12 & 23)        -->
+    <!-- ================================================================== -->
+    <!-- Floating Watty Trigger Button -->
+    <button id="watty-floating-trigger" class="watty-floating-bubble" aria-label="Ask Watty AI Helper">
+      <div class="watty-icon-face">
+        <div class="watty-pip-top"></div>
+        <div class="watty-head">
+          <div class="watty-eyes">
+            <span class="eye"></span>
+            <span class="eye"></span>
+          </div>
+          <div class="watty-smile"></div>
+        </div>
+      </div>
+    </button>
+
+    <!-- Watty Chat Drawer Modal -->
+    <div id="watty-modal" class="watty-modal-overlay hidden">
+      <div class="watty-sheet">
+        <!-- Watty Sheet Header -->
+        <div class="watty-sheet-header">
+          <div class="watty-identity">
+            <div class="watty-mini-avatar">⚡</div>
+            <div>
+              <h3 class="watty-title">Watty</h3>
+              <p class="watty-subtitle">Battery and recycling helper &bull; Gemini</p>
+            </div>
+          </div>
+          <button id="btn-close-watty" class="btn-sheet-close" aria-label="Close Chat">&times;</button>
+        </div>
+
+        <!-- Chat Conversation Messages -->
+        <div id="watty-messages-container" class="watty-messages-area">
+          <div class="chat-bubble watty-bot">
+            Hi, I'm Watty. Ask me about batteries, safety, or where to take them.
+          </div>
+        </div>
+
+        <!-- Quick Prompt Chips -->
+        <div class="watty-quick-chips">
+          <button class="quick-chip" data-query="Where do I take a swollen phone battery?">Where do I take a swollen phone battery?</button>
+          <button class="quick-chip" data-query="Show drop-off points">Show drop-off points</button>
+          <button class="quick-chip" data-query="Is it safe to store?">Is it safe to store?</button>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <form id="watty-chat-form" class="watty-input-bar">
+          <input type="text" id="watty-input" class="watty-text-input" placeholder="Ask Watty..." autocomplete="off">
+          <button type="submit" class="watty-send-btn" aria-label="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- BOTTOM NAVIGATION TABS (Mockup Page 10, 11, 16, 22)                -->
+    <!-- ================================================================== -->
+    <nav class="bottom-tab-bar">
+      <button id="tab-btn-home" class="tab-pill-btn active">
+        <span>Home</span>
+      </button>
+      <button id="tab-btn-profile" class="tab-pill-btn">
+        <span>Profile</span>
+      </button>
+    </nav>
+
   </div>
 
   <!-- Scripts -->
   <!-- map.js is owned by Person B and exposes Watt2DoMap.show and Watt2DoMap.clear -->
   <script src="map.js"></script>
-  <!-- app.js is owned by Person C and drives the UI states, camera input, and API calls -->
+  <!-- app.js is owned by Person C and drives UI states, camera input, and API calls -->
   <script src="app.js"></script>
 </body>
 </html>

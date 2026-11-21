@@ -1,176 +1,317 @@
 /**
- * Watt2Do — Frontend Application (Person C)
- * Handles:
- *  1. State transitions (Start -> Loading -> Result)
- *  2. Camera capture and client-side photo resizing to 1024px max dimension
- *  3. POST /api/scan and handling contract v1.1 response
- *  4. Low confidence filtering (< 0.6)
- *  5. Geolocation acquisition (with graceful fallback to null)
- *  6. GET /api/dropoffs and rendering drop-offs list
- *  7. Invoking Watt2DoMap.show("map", userLocation, results)
- *  8. LocalStorage impact counter ("N items kept out of landfill")
- *  9. Safe error handling (never expose raw traces to user)
+ * Watt2Do — Interactive Application Logic (Person C)
+ * Implements:
+ * - Mobile UI Screens (Scan, Loading, Result, Drop-offs, Impact, Profile)
+ * - Native Camera & Canvas 1024px Downsampling
+ * - POST /api/scan with Contract v1.1 validation
+ * - Confidence ring calculation & damage alert banner
+ * - Geolocation & GET /api/dropoffs
+ * - Watt2DoMap.show("map", userLocation, results) integration
+ * - Impact & Gamified Battery Gauge persistence
+ * - Interactive "Watty" AI Recycling Helper
  */
 
 (function () {
   'use strict';
 
-  // --- Constants ---
+  // --- Configuration & Constants ---
   const MAX_IMAGE_DIMENSION = 1024;
   const LOW_CONFIDENCE_THRESHOLD = 0.6;
-  const IMPACT_STORAGE_KEY = 'watt2do_items_saved';
-  const DEFAULT_FALLBACK_COORDS = { lat: 28.06, lng: -82.41 }; // USF Tampa area
+  const STORAGE_KEY_IMPACT = 'watt2do_items_saved';
+  const STORAGE_KEY_HISTORY = 'watt2do_scan_history';
+  const DEFAULT_COORDS = { lat: 28.06, lng: -82.41 }; // USF Tampa area
+
+  // --- Screens / Views ---
+  const views = {
+    scan: document.getElementById('view-scan'),
+    loading: document.getElementById('view-loading'),
+    result: document.getElementById('view-result'),
+    dropoffs: document.getElementById('view-dropoffs'),
+    impact: document.getElementById('view-impact'),
+    profile: document.getElementById('view-profile'),
+  };
 
   // --- DOM Elements ---
-  const stateStart = document.getElementById('state-start');
-  const stateLoading = document.getElementById('state-loading');
-  const stateResult = document.getElementById('state-result');
-
   const cameraInput = document.getElementById('camera-input');
-  const scanTriggerBtn = document.getElementById('scan-trigger-btn');
-  const fileTriggerBtn = document.getElementById('file-trigger-btn');
+  const galleryInput = document.getElementById('gallery-input');
+  const btnMainScan = document.getElementById('btn-main-scan');
+  const btnGalleryUpload = document.getElementById('btn-gallery-upload');
+  const btnOpenImpact = document.getElementById('btn-open-impact');
+  const homeImpactCount = document.getElementById('home-impact-count');
 
-  const loadingStatusText = document.getElementById('loading-status-text');
+  // Loading
+  const loadingSubMessage = document.getElementById('loading-sub-message');
 
-  const lowConfidenceBox = document.getElementById('low-confidence-box');
-  const confidentResultBox = document.getElementById('confident-result-box');
-  const retakeLowConfBtn = document.getElementById('retake-low-conf-btn');
-  const scanAnotherBtn = document.getElementById('scan-another-btn');
+  // Result Elements
+  const lowConfidenceBanner = document.getElementById('low-confidence-banner');
+  const confidentResultContent = document.getElementById('confident-result-content');
+  const btnRetakePhoto = document.getElementById('btn-retake-photo');
+  const matchRingProgress = document.getElementById('match-ring-progress');
+  const matchPercentText = document.getElementById('match-percent-text');
+  const resItemTitle = document.getElementById('res-item-title');
+  const resBatteryPill = document.getElementById('res-battery-pill');
+  const resCategoryPill = document.getElementById('res-category-pill');
+  const resDamageBanner = document.getElementById('res-damage-banner');
+  const resDamageDetail = document.getElementById('res-damage-detail');
+  const resStepsList = document.getElementById('res-steps-list');
+  const regularBinNotice = document.getElementById('regular-bin-notice');
+  const btnFindDropoffs = document.getElementById('btn-find-dropoffs');
+  const btnRescanItem = document.getElementById('btn-rescan-item');
 
-  const resultItemName = document.getElementById('result-item-name');
-  const resultConfidencePill = document.getElementById('result-confidence-pill');
-  const resultCategoryBadge = document.getElementById('result-category-badge');
-  const resultBatteryTypeBadge = document.getElementById('result-battery-type-badge');
+  // Drop-off Elements
+  const gpsAreaLabel = document.getElementById('gps-area-label');
+  const btnUpdateLocation = document.getElementById('btn-update-location');
+  const placesCardsList = document.getElementById('places-cards-list');
+  const placesLoadingIndicator = document.getElementById('places-loading-indicator');
+  const placesEmptyState = document.getElementById('places-empty-state');
+  const btnDropoffsDone = document.getElementById('btn-dropoffs-done');
 
-  const damageWarningBanner = document.getElementById('damage-warning-banner');
-  const damageNotesText = document.getElementById('damage-notes-text');
-  const instructionsList = document.getElementById('instructions-list');
+  // Filter Chips
+  const chipOpen = document.getElementById('filter-chip-open');
+  const chipBatteries = document.getElementById('filter-chip-batteries');
+  const chipEwaste = document.getElementById('filter-chip-ewaste');
 
-  const regularBinBox = document.getElementById('regular-bin-box');
-  const dropoffSection = document.getElementById('dropoff-section');
-  const dropoffFilterTag = document.getElementById('dropoff-filter-tag');
-  const locationStatusIndicator = document.getElementById('location-status-indicator');
-  const dropoffsList = document.getElementById('dropoffs-list');
-  const dropoffsLoading = document.getElementById('dropoffs-loading');
-  const dropoffsEmpty = document.getElementById('dropoffs-empty');
+  // Impact Elements
+  const impactBigNumber = document.getElementById('impact-big-number');
+  const batteryLevelSubtitle = document.getElementById('battery-level-subtitle');
+  const btnImpactScanAnother = document.getElementById('btn-impact-scan-another');
+  const milestoneFirst = document.getElementById('ms-first');
+  const milestone5 = document.getElementById('ms-5items');
+  const milestone10 = document.getElementById('ms-10items');
 
-  const impactCountEl = document.getElementById('impact-count');
-  const errorBanner = document.getElementById('error-banner');
-  const errorMessage = document.getElementById('error-message');
+  // Profile Elements
+  const headerProfileBtn = document.getElementById('header-profile-btn');
+  const brandHomeBtn = document.getElementById('brand-home-btn');
+  const profileItemsCount = document.getElementById('profile-items-count');
+  const profileLevelVal = document.getElementById('profile-level-val');
+  const profileNextScanDesc = document.getElementById('profile-next-scan-desc');
+  const btnSignOut = document.getElementById('btn-sign-out');
+
+  // Navigation Tabs
+  const tabBtnHome = document.getElementById('tab-btn-home');
+  const tabBtnProfile = document.getElementById('tab-btn-profile');
+
+  // Error Toast
+  const errorToast = document.getElementById('error-toast');
+  const errorToastText = document.getElementById('error-toast-text');
   const errorDismissBtn = document.getElementById('error-dismiss-btn');
 
-  // --- Application State ---
-  let isScanning = false;
+  // Watty Chat Elements
+  const wattyTrigger = document.getElementById('watty-floating-trigger');
+  const wattyModal = document.getElementById('watty-modal');
+  const btnCloseWatty = document.getElementById('btn-close-watty');
+  const wattyMessagesContainer = document.getElementById('watty-messages-container');
+  const wattyChatForm = document.getElementById('watty-chat-form');
+  const wattyInput = document.getElementById('watty-input');
+  const quickChips = document.querySelectorAll('.quick-chip');
+
+  // --- Runtime State ---
+  let currentScanData = null;
+  let cachedUserLocation = null;
+  let activeDropoffs = [];
+  let filterOnlyOpen = true;
+  let activeFilterType = 'batteries';
 
   // ==========================================================================
-  // Initialization & Event Listeners
+  // Initialization
   // ==========================================================================
   function init() {
-    updateImpactDisplay();
+    updateImpactMetrics();
+    setupEventListeners();
+  }
 
-    // Trigger file / camera input
-    scanTriggerBtn.addEventListener('click', () => {
-      clearError();
+  function setupEventListeners() {
+    // Camera & Upload Triggers
+    btnMainScan.addEventListener('click', () => {
+      dismissError();
       cameraInput.click();
     });
 
-    fileTriggerBtn.addEventListener('click', () => {
-      clearError();
-      cameraInput.click();
+    btnGalleryUpload.addEventListener('click', () => {
+      dismissError();
+      galleryInput.click();
     });
 
-    // Handle file chosen / photo captured
-    cameraInput.addEventListener('change', handleImageSelection);
+    cameraInput.addEventListener('change', handleFileSelected);
+    galleryInput.addEventListener('change', handleFileSelected);
 
-    // Retake / Reset buttons
-    retakeLowConfBtn.addEventListener('click', resetToStart);
-    scanAnotherBtn.addEventListener('click', resetToStart);
+    // Result Actions
+    btnRetakePhoto.addEventListener('click', () => switchScreen('scan'));
+    btnRescanItem.addEventListener('click', () => switchScreen('scan'));
+    btnFindDropoffs.addEventListener('click', () => {
+      switchScreen('dropoffs');
+      loadDropoffPoints();
+    });
 
-    // Dismiss error banner
-    errorDismissBtn.addEventListener('click', clearError);
+    // Dropoffs View Actions
+    btnUpdateLocation.addEventListener('click', () => {
+      cachedUserLocation = null;
+      loadDropoffPoints();
+    });
+
+    btnDropoffsDone.addEventListener('click', () => {
+      switchScreen('impact');
+    });
+
+    // Filter Chips
+    chipOpen.addEventListener('click', () => {
+      filterOnlyOpen = !filterOnlyOpen;
+      chipOpen.classList.toggle('active', filterOnlyOpen);
+      renderPlacesList();
+    });
+
+    chipBatteries.addEventListener('click', () => {
+      activeFilterType = 'batteries';
+      chipBatteries.classList.add('active');
+      chipEwaste.classList.remove('active');
+      loadDropoffPoints();
+    });
+
+    chipEwaste.addEventListener('click', () => {
+      activeFilterType = 'ewaste';
+      chipEwaste.classList.add('active');
+      chipBatteries.classList.remove('active');
+      loadDropoffPoints();
+    });
+
+    // Impact View Actions
+    btnOpenImpact.addEventListener('click', () => switchScreen('impact'));
+    btnImpactScanAnother.addEventListener('click', () => switchScreen('scan'));
+
+    // Navigation & Tabs
+    tabBtnHome.addEventListener('click', () => {
+      setTabActive('home');
+      switchScreen('scan');
+    });
+
+    tabBtnProfile.addEventListener('click', () => {
+      setTabActive('profile');
+      switchScreen('profile');
+    });
+
+    headerProfileBtn.addEventListener('click', () => {
+      setTabActive('profile');
+      switchScreen('profile');
+    });
+
+    brandHomeBtn.addEventListener('click', () => {
+      setTabActive('home');
+      switchScreen('scan');
+    });
+
+    btnSignOut.addEventListener('click', () => {
+      showError('Signed out of guest profile session.');
+      switchScreen('scan');
+      setTabActive('home');
+    });
+
+    // Error dismiss
+    errorDismissBtn.addEventListener('click', dismissError);
+
+    // Watty Chat
+    wattyTrigger.addEventListener('click', () => {
+      wattyModal.classList.remove('hidden');
+      wattyInput.focus();
+    });
+
+    btnCloseWatty.addEventListener('click', () => {
+      wattyModal.classList.add('hidden');
+    });
+
+    wattyModal.addEventListener('click', (e) => {
+      if (e.target === wattyModal) {
+        wattyModal.classList.add('hidden');
+      }
+    });
+
+    wattyChatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleWattySubmit();
+    });
+
+    quickChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const query = chip.dataset.query;
+        if (query) {
+          sendWattyMessage(query);
+        }
+      });
+    });
   }
 
   // ==========================================================================
-  // State Transitions
+  // Screen Management
   // ==========================================================================
-  function showState(state) {
-    stateStart.classList.add('hidden');
-    stateLoading.classList.add('hidden');
-    stateResult.classList.add('hidden');
+  function switchScreen(targetKey) {
+    dismissError();
 
-    if (state === 'start') {
-      stateStart.classList.remove('hidden');
-    } else if (state === 'loading') {
-      stateLoading.classList.remove('hidden');
-    } else if (state === 'result') {
-      stateResult.classList.remove('hidden');
-    }
-  }
+    Object.keys(views).forEach((key) => {
+      if (views[key]) {
+        views[key].classList.toggle('active', key === targetKey);
+      }
+    });
 
-  function resetToStart() {
-    clearError();
-    cameraInput.value = '';
-    isScanning = false;
-
-    // Clear map if map module exists
-    if (window.Watt2DoMap && typeof window.Watt2DoMap.clear === 'function') {
-      try {
-        window.Watt2DoMap.clear();
-      } catch (e) {
-        console.warn('Watt2DoMap.clear error:', e);
+    if (targetKey === 'impact') {
+      updateImpactMetrics();
+    } else if (targetKey === 'profile') {
+      updateProfileMetrics();
+    } else if (targetKey === 'scan') {
+      cameraInput.value = '';
+      galleryInput.value = '';
+      if (window.Watt2DoMap && typeof window.Watt2DoMap.clear === 'function') {
+        try { window.Watt2DoMap.clear(); } catch (e) { /* ignore */ }
       }
     }
+  }
 
-    showState('start');
+  function setTabActive(tabName) {
+    tabBtnHome.classList.toggle('active', tabName === 'home');
+    tabBtnProfile.classList.toggle('active', tabName === 'profile');
   }
 
   // ==========================================================================
-  // Image Processing (Resize Client-Side to 1024px max dimension)
+  // Image Capture & Canvas Downsampling (<= 1024px)
   // ==========================================================================
-  async function handleImageSelection(event) {
+  async function handleFileSelected(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showError('Please select a valid image file (JPEG or PNG).');
+      showError('Please select a valid JPEG or PNG image.');
       return;
     }
 
     try {
-      isScanning = true;
-      showState('loading');
-      setLoadingMessage('Optimizing photo for analysis...');
+      switchScreen('loading');
+      setLoadingText('Optimizing image for AI detection...');
 
-      const resizedBlob = await resizeImageToMaxDimension(file, MAX_IMAGE_DIMENSION);
+      const resizedBlob = await downsampleImageCanvas(file, MAX_IMAGE_DIMENSION);
 
-      setLoadingMessage('Identifying item & checking battery damage with Gemini...');
-      const scanResult = await postScanImage(resizedBlob);
+      setLoadingText('Analyzing chemistry & damage with Gemini...');
+      const responseData = await postScanToBackend(resizedBlob);
 
-      handleScanSuccess(scanResult);
+      handleScanSuccess(responseData);
     } catch (err) {
-      console.error('Scan error:', err);
+      console.error('Scan failed:', err);
       showError(err.message || 'Unable to scan item. Please try again.');
-      resetToStart();
-    } finally {
-      isScanning = false;
+      switchScreen('scan');
     }
   }
 
-  function resizeImageToMaxDimension(file, maxDimension) {
+  function downsampleImageCanvas(file, maxDim) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = function (e) {
         const img = new Image();
         img.onload = function () {
           let { width, height } = img;
-
-          if (width > maxDimension || height > maxDimension) {
+          if (width > maxDim || height > maxDim) {
             if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
             } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
             }
           }
 
@@ -178,375 +319,449 @@
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-
           if (!ctx) {
-            reject(new Error('Canvas rendering context not available.'));
+            reject(new Error('Canvas context unavailable'));
             return;
           }
 
           ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Image compression failed.'));
-              }
-            },
-            'image/jpeg',
-            0.85
-          );
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Canvas image conversion failed'));
+          }, 'image/jpeg', 0.85);
         };
-        img.onerror = () => reject(new Error('Could not read image file.'));
+        img.onerror = () => reject(new Error('Could not load image'));
         img.src = e.target.result;
       };
-      reader.onerror = () => reject(new Error('Failed to read image file.'));
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
   }
 
   // ==========================================================================
-  // API Calls
+  // API: POST /api/scan
   // ==========================================================================
-  async function postScanImage(blob) {
+  async function postScanToBackend(blob) {
     const formData = new FormData();
     formData.append('image', blob, 'scan.jpg');
 
-    let response;
+    let res;
     try {
-      response = await fetch('/api/scan', {
+      res = await fetch('/api/scan', {
         method: 'POST',
         body: formData,
       });
-    } catch (networkErr) {
-      throw new Error('Network error. Check connection or server status.');
+    } catch (networkError) {
+      throw new Error('Connection error. Please check your internet connection.');
     }
 
     let data;
     try {
-      data = await response.json();
-    } catch (jsonErr) {
+      data = await res.json();
+    } catch (parseError) {
       throw new Error('Invalid response from server.');
     }
 
-    if (!response.ok || !data.ok) {
-      const errMsg = (data && data.error) ? data.error : `Server returned status ${response.status}`;
-      throw new Error(errMsg);
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || 'Server error during scan');
     }
 
     return data;
   }
 
   // ==========================================================================
-  // Scan Result Handling
+  // Result Display Logic
   // ==========================================================================
-  async function handleScanSuccess(result) {
-    showState('result');
+  function handleScanSuccess(data) {
+    currentScanData = data;
+    switchScreen('result');
 
-    const confidence = typeof result.confidence === 'number' ? result.confidence : 1.0;
+    const confidence = typeof data.confidence === 'number' ? data.confidence : 0.95;
 
-    // Task 3: Low confidence check (< 0.6)
+    // Task 3: Low confidence threshold check (< 0.6)
     if (confidence < LOW_CONFIDENCE_THRESHOLD) {
-      lowConfidenceBox.classList.remove('hidden');
-      confidentResultBox.classList.add('hidden');
+      lowConfidenceBanner.classList.remove('hidden');
+      confidentResultContent.classList.add('hidden');
       return;
     }
 
-    lowConfidenceBox.classList.add('hidden');
-    confidentResultBox.classList.remove('hidden');
+    lowConfidenceBanner.classList.add('hidden');
+    confidentResultContent.classList.remove('hidden');
 
-    // Populate Item Information
-    resultItemName.textContent = result.item || 'Unidentified Item';
-    resultConfidencePill.textContent = `${Math.round(confidence * 100)}% match`;
+    // 1. Confidence Ring Animation (circumference = 113.1 for r=18)
+    const percentage = Math.round(confidence * 100);
+    matchPercentText.textContent = `${percentage}%`;
+    const circumference = 113.1;
+    const offset = circumference * (1 - confidence);
+    matchRingProgress.style.strokeDashoffset = offset.toString();
 
-    // Category Badge
-    const category = result.category || 'unknown';
-    resultCategoryBadge.textContent = category;
-    resultCategoryBadge.className = `badge badge-category badge-cat-${category}`;
-
-    // Battery Type Badge
-    if (result.batteryType) {
-      resultBatteryTypeBadge.textContent = result.batteryType.replace('_', '-');
-      resultBatteryTypeBadge.classList.remove('hidden');
+    // 2. Title & Type Pill
+    resItemTitle.textContent = data.item || 'Battery';
+    if (data.batteryType) {
+      resBatteryPill.textContent = data.batteryType.replace(/_/g, '-');
+      resBatteryPill.classList.remove('hidden');
     } else {
-      resultBatteryTypeBadge.classList.add('hidden');
+      resBatteryPill.classList.add('hidden');
+    }
+    resCategoryPill.textContent = data.category || 'battery';
+
+    // 3. Red Hazard Warning Banner
+    if (data.damaged === true) {
+      resDamageBanner.classList.remove('hidden');
+      resDamageDetail.textContent = data.damageNotes || 'swelling or structural leak detected';
+    } else {
+      resDamageBanner.classList.add('hidden');
     }
 
-    // Damage Warning Banner (Task 1: red warning banner when damaged is true)
-    if (result.damaged === true) {
-      damageWarningBanner.classList.remove('hidden');
-      damageNotesText.textContent = result.damageNotes || 'Physical damage or potential swelling detected. Do not charge or incinerate.';
-    } else {
-      damageWarningBanner.classList.add('hidden');
-    }
+    // 4. Instructions List (Numbered pills 1, 2, 3)
+    resStepsList.innerHTML = '';
+    const instructions = Array.isArray(data.instructions) && data.instructions.length > 0
+      ? data.instructions
+      : [
+          'Tape over the terminals with electrical tape.',
+          'Store in a cool, non-flammable container.',
+          'Never put it in household trash.'
+        ];
 
-    // Instructions List (Task 1: render 2 to 5 short strings)
-    instructionsList.innerHTML = '';
-    const instructions = Array.isArray(result.instructions) ? result.instructions : [];
-    if (instructions.length === 0) {
+    instructions.forEach((stepText, idx) => {
       const li = document.createElement('li');
-      li.textContent = 'Keep away from fire and water. Follow local e-waste disposal laws.';
-      instructionsList.appendChild(li);
-    } else {
-      instructions.forEach((instr) => {
-        const li = document.createElement('li');
-        li.textContent = instr;
-        instructionsList.appendChild(li);
-      });
-    }
+      li.className = 'step-pill-item';
 
-    // Task 6: Impact Counter in localStorage
-    // Increase when a battery or hazardous item is scanned
-    if (category === 'battery' || category === 'hazardous' || category === 'ewaste' || result.dropoffFilter === 'batteries' || result.dropoffFilter === 'hazardous' || result.dropoffFilter === 'ewaste') {
-      incrementImpactCount();
-      updateImpactDisplay();
-    }
+      const numSpan = document.createElement('span');
+      numSpan.className = 'step-num-circle';
+      numSpan.textContent = (idx + 1).toString();
 
-    // Task 4: Drop-off filter handling
-    const filter = result.dropoffFilter || 'none';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'step-text';
+      textSpan.textContent = stepText;
+
+      li.appendChild(numSpan);
+      li.appendChild(textSpan);
+      resStepsList.appendChild(li);
+    });
+
+    // 5. Regular bin vs Dropoff filter
+    const filter = data.dropoffFilter || 'batteries';
+    activeFilterType = filter === 'none' ? 'batteries' : filter;
+
     if (filter === 'none') {
-      regularBinBox.classList.remove('hidden');
-      dropoffSection.classList.add('hidden');
+      regularBinNotice.classList.remove('hidden');
+      btnFindDropoffs.textContent = 'View regular bin guidelines';
     } else {
-      regularBinBox.classList.add('hidden');
-      dropoffSection.classList.remove('hidden');
-      dropoffFilterTag.textContent = filter;
+      regularBinNotice.classList.add('hidden');
+      btnFindDropoffs.textContent = 'Find drop-off near me';
+    }
 
-      await loadDropoffLocations(filter);
+    // 6. Impact counter increment
+    if (data.category === 'battery' || data.category === 'hazardous' || data.category === 'ewaste' || filter !== 'none') {
+      incrementImpact();
+      saveToHistory(data);
     }
   }
 
   // ==========================================================================
   // Geolocation & Drop-offs
   // ==========================================================================
-  async function loadDropoffLocations(filter) {
-    locationStatusIndicator.textContent = 'Requesting location...';
-    dropoffsLoading.classList.remove('hidden');
-    dropoffsEmpty.classList.add('hidden');
-    dropoffsList.innerHTML = '';
+  async function loadDropoffPoints() {
+    placesLoadingIndicator.classList.remove('hidden');
+    placesEmptyState.classList.add('hidden');
+    placesCardsList.innerHTML = '';
 
-    // Task 4: Get location with navigator.geolocation (if denied, continue with null)
-    let userLocation = null;
-    try {
-      userLocation = await getUserCoordinates();
-      locationStatusIndicator.textContent = 'Using your current location';
-    } catch (geoErr) {
-      console.warn('Geolocation unavailable or denied:', geoErr);
-      userLocation = null;
-      locationStatusIndicator.textContent = 'Location denied or unavailable — showing USF / Tampa area drop-offs';
+    // Step 1: Geolocation
+    if (!cachedUserLocation) {
+      try {
+        gpsAreaLabel.textContent = 'Acquiring GPS location...';
+        cachedUserLocation = await fetchBrowserCoordinates();
+        gpsAreaLabel.textContent = 'GPS on: [Your current location]';
+      } catch (geoErr) {
+        console.warn('Geolocation denied or timed out:', geoErr);
+        cachedUserLocation = null;
+        gpsAreaLabel.textContent = 'GPS off: USF / Tampa area';
+      }
     }
 
-    // Fetch drop-offs from backend
+    // Step 2: Fetch /api/dropoffs
     try {
-      const dropoffs = await fetchDropoffs(userLocation, filter);
-      dropoffsLoading.classList.add('hidden');
+      const filter = activeFilterType || 'batteries';
+      const dropoffs = await requestDropoffsAPI(cachedUserLocation, filter);
+      activeDropoffs = dropoffs;
+      placesLoadingIndicator.classList.add('hidden');
 
-      if (!dropoffs || dropoffs.length === 0) {
-        dropoffsEmpty.classList.remove('hidden');
-      } else {
-        renderDropoffsList(dropoffs);
-      }
+      renderPlacesList();
 
-      // Task 4 & 5: Invoke Watt2DoMap.show("map", userLocation, results)
-      renderMap(userLocation, dropoffs || []);
-    } catch (dropoffErr) {
-      console.error('Failed to load drop-offs:', dropoffErr);
-      dropoffsLoading.classList.add('hidden');
-      dropoffsEmpty.classList.remove('hidden');
-      dropoffsEmpty.querySelector('p').textContent = 'Unable to load drop-off locations right now. Please check local county guidelines.';
-      renderMap(userLocation, []);
+      // Step 3: Draw map via Person B's Watt2DoMap
+      renderMapModule(cachedUserLocation, activeDropoffs);
+    } catch (err) {
+      console.error('Failed to retrieve drop-offs:', err);
+      placesLoadingIndicator.classList.add('hidden');
+      placesEmptyState.classList.remove('hidden');
+      renderMapModule(cachedUserLocation, []);
     }
   }
 
-  function getUserCoordinates() {
+  function fetchBrowserCoordinates() {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('Geolocation not supported by browser.'));
+        reject(new Error('Geolocation not supported'));
         return;
       }
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 7000,
-        maximumAge: 60000,
-      };
-
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          resolve({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-        },
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => reject(err),
-        options
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
       );
     });
   }
 
-  async function fetchDropoffs(userLocation, filter) {
+  async function requestDropoffsAPI(location, filter) {
     const params = new URLSearchParams();
     params.set('filter', filter);
 
-    if (userLocation && typeof userLocation.lat === 'number' && typeof userLocation.lng === 'number') {
-      params.set('lat', userLocation.lat);
-      params.set('lng', userLocation.lng);
+    if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
+      params.set('lat', location.lat);
+      params.set('lng', location.lng);
     } else {
-      // Fallback coordinates for Places API server call
-      params.set('lat', DEFAULT_FALLBACK_COORDS.lat);
-      params.set('lng', DEFAULT_FALLBACK_COORDS.lng);
+      params.set('lat', DEFAULT_COORDS.lat);
+      params.set('lng', DEFAULT_COORDS.lng);
     }
 
-    const response = await fetch(`/api/dropoffs?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error(`Drop-off service responded with status ${response.status}`);
+    const res = await fetch(`/api/dropoffs?${params.toString()}`);
+    if (!res.ok) {
+      throw new Error(`Drop-off service responded with ${res.status}`);
     }
 
-    const data = await response.json();
+    const data = await res.json();
     if (!data.ok) {
-      throw new Error(data.error || 'Failed to retrieve drop-offs');
+      throw new Error(data.error || 'Failed to load locations');
     }
 
     return Array.isArray(data.results) ? data.results : [];
   }
 
-  function renderDropoffsList(dropoffs) {
-    dropoffsList.innerHTML = '';
+  function renderPlacesList() {
+    placesCardsList.innerHTML = '';
 
-    dropoffs.forEach((place) => {
+    let items = activeDropoffs;
+    if (filterOnlyOpen) {
+      items = items.filter((item) => item.openNow !== false);
+    }
+
+    if (items.length === 0) {
+      placesEmptyState.classList.remove('hidden');
+      return;
+    }
+    placesEmptyState.classList.add('hidden');
+
+    items.forEach((item, index) => {
       const li = document.createElement('li');
-      li.className = 'dropoff-item-card';
+      li.className = 'place-card-item';
 
-      // Top row: Name & Distance
-      const topRow = document.createElement('div');
-      topRow.className = 'dropoff-item-top';
+      const numCircle = document.createElement('span');
+      numCircle.className = 'place-num-circle';
+      numCircle.textContent = (index + 1).toString();
 
-      const nameEl = document.createElement('h5');
-      nameEl.className = 'dropoff-item-name';
-      nameEl.textContent = place.name || 'Drop-off Location';
-      topRow.appendChild(nameEl);
+      const infoCol = document.createElement('div');
+      infoCol.className = 'place-info-col';
 
-      if (typeof place.distanceKm === 'number') {
-        const distEl = document.createElement('span');
-        distEl.className = 'dropoff-item-distance';
-        distEl.textContent = `${place.distanceKm.toFixed(1)} km`;
-        topRow.appendChild(distEl);
-      }
-      li.appendChild(topRow);
+      const title = document.createElement('h4');
+      title.className = 'place-title';
+      title.textContent = item.name || 'Drop-off Location';
 
-      // Address
-      if (place.address) {
-        const addrEl = document.createElement('p');
-        addrEl.className = 'dropoff-item-address';
-        addrEl.textContent = place.address;
-        li.appendChild(addrEl);
-      }
+      const meta = document.createElement('p');
+      meta.className = 'place-meta-line';
 
-      // Details row: OpenNow badge & Accepts tags
-      const detailsRow = document.createElement('div');
-      detailsRow.className = 'dropoff-item-details';
-
-      if (place.openNow === true) {
-        const openBadge = document.createElement('span');
-        openBadge.className = 'status-badge status-open';
-        openBadge.textContent = 'Open now';
-        detailsRow.appendChild(openBadge);
-      } else if (place.openNow === false) {
-        const closedBadge = document.createElement('span');
-        closedBadge.className = 'status-badge status-closed';
-        closedBadge.textContent = 'Closed';
-        detailsRow.appendChild(closedBadge);
-      } else if (place.hours) {
-        const hoursBadge = document.createElement('span');
-        hoursBadge.className = 'status-badge';
-        hoursBadge.textContent = place.hours;
-        detailsRow.appendChild(hoursBadge);
+      const distance = typeof item.distanceKm === 'number' ? `${item.distanceKm.toFixed(1)} km` : '';
+      let statusStr = '';
+      if (item.openNow === true) {
+        statusStr = '<span class="open-now-text">Open now</span>';
+      } else if (item.hours) {
+        statusStr = item.hours;
+      } else if (item.openNow === false) {
+        statusStr = 'Closed';
       }
 
-      if (Array.isArray(place.accepts)) {
-        place.accepts.forEach((mat) => {
-          const matTag = document.createElement('span');
-          matTag.className = 'accepts-tag';
-          matTag.textContent = mat;
-          detailsRow.appendChild(matTag);
-        });
-      }
+      meta.innerHTML = distance && statusStr ? `${distance} &bull; ${statusStr}` : distance || statusStr;
 
-      li.appendChild(detailsRow);
-      dropoffsList.appendChild(li);
+      infoCol.appendChild(title);
+      infoCol.appendChild(meta);
+      li.appendChild(numCircle);
+      li.appendChild(infoCol);
+
+      li.addEventListener('click', () => {
+        document.querySelectorAll('.place-card-item').forEach(el => el.classList.remove('selected'));
+        li.classList.add('selected');
+      });
+
+      placesCardsList.appendChild(li);
     });
   }
 
-  function renderMap(userLocation, results) {
-    // Contract v1.1 Frontend Map Interface:
-    // Watt2DoMap.show("map", userLocation, results)
-    // userLocation = { lat, lng } or null
-    // results = array from /api/dropoffs
+  function renderMapModule(location, results) {
     if (window.Watt2DoMap && typeof window.Watt2DoMap.show === 'function') {
       try {
-        window.Watt2DoMap.show('map', userLocation, results);
-      } catch (mapErr) {
-        console.warn('Watt2DoMap.show error:', mapErr);
+        window.Watt2DoMap.show('map', location, results);
+      } catch (err) {
+        console.warn('Watt2DoMap.show threw an exception:', err);
       }
     } else {
-      console.info('Watt2DoMap module is not loaded yet or unavailable.');
+      console.info('Watt2DoMap is loading or not yet initialized.');
     }
   }
 
   // ==========================================================================
-  // LocalStorage Impact Counter (Task 6)
+  // Gamified Impact Tracking & LocalStorage
   // ==========================================================================
   function getImpactCount() {
     try {
-      const val = localStorage.getItem(IMPACT_STORAGE_KEY);
+      const val = localStorage.getItem(STORAGE_KEY_IMPACT);
       return val ? parseInt(val, 10) || 0 : 0;
     } catch (e) {
-      console.warn('localStorage not accessible:', e);
       return 0;
     }
   }
 
-  function incrementImpactCount() {
+  function incrementImpact() {
     try {
-      const current = getImpactCount() + 1;
-      localStorage.setItem(IMPACT_STORAGE_KEY, current.toString());
-      return current;
+      const next = getImpactCount() + 1;
+      localStorage.setItem(STORAGE_KEY_IMPACT, next.toString());
+      updateImpactMetrics();
+      return next;
     } catch (e) {
-      console.warn('localStorage write failed:', e);
-      return 0;
+      return getImpactCount();
     }
   }
 
-  function updateImpactDisplay() {
+  function updateImpactMetrics() {
     const count = getImpactCount();
-    if (impactCountEl) {
-      impactCountEl.textContent = count.toString();
+    if (homeImpactCount) homeImpactCount.textContent = count.toString();
+    if (impactBigNumber) impactBigNumber.textContent = count.toString();
+
+    // Battery Gauge blocks logic (Level 1..5)
+    // Level formula: Level = Math.floor(count / 5) + 1
+    // Gauge fills 1 to 5 blocks
+    const level = Math.floor(count / 5) + 1;
+    const progressInLevel = count % 5;
+    const neededForNext = 5 - progressInLevel;
+
+    if (batteryLevelSubtitle) {
+      batteryLevelSubtitle.textContent = `Level ${level} \u2022 ${neededForNext} more scan${neededForNext === 1 ? '' : 's'} to Level ${level + 1}`;
+    }
+
+    const blocksToFill = progressInLevel === 0 && count > 0 ? 5 : progressInLevel;
+    for (let i = 1; i <= 5; i++) {
+      const blockEl = document.getElementById(`gb-${i}`);
+      if (blockEl) {
+        blockEl.classList.toggle('filled', i <= blocksToFill);
+      }
+    }
+
+    // Milestones
+    if (milestoneFirst) milestoneFirst.classList.toggle('unlocked', count >= 1);
+    if (milestone5) milestone5.classList.toggle('unlocked', count >= 5);
+    if (milestone10) milestone10.classList.toggle('unlocked', count >= 10);
+  }
+
+  function updateProfileMetrics() {
+    const count = getImpactCount();
+    if (profileItemsCount) profileItemsCount.textContent = count.toString();
+
+    const level = Math.floor(count / 5) + 1;
+    const progressInLevel = count % 5;
+    const neededForNext = 5 - progressInLevel;
+
+    if (profileLevelVal) profileLevelVal.textContent = `Lv ${level}`;
+    if (profileNextScanDesc) profileNextScanDesc.textContent = `${neededForNext} more scan${neededForNext === 1 ? '' : 's'} to Lv ${level + 1}`;
+  }
+
+  function saveToHistory(item) {
+    try {
+      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '[]');
+      existing.unshift({
+        item: item.item,
+        batteryType: item.batteryType,
+        date: new Date().toLocaleDateString(),
+      });
+      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(existing.slice(0, 10)));
+    } catch (e) {
+      /* ignore */
     }
   }
 
   // ==========================================================================
-  // Helpers & Error Handling (Task 7: Friendly errors, no raw traces)
+  // Watty AI Helper Chat (Gemini Assistant Stretch Feature)
   // ==========================================================================
-  function setLoadingMessage(msg) {
-    if (loadingStatusText) {
-      loadingStatusText.textContent = msg;
+  function handleWattySubmit() {
+    const text = wattyInput.value.trim();
+    if (!text) return;
+    wattyInput.value = '';
+    sendWattyMessage(text);
+  }
+
+  function sendWattyMessage(text) {
+    // Append User Bubble
+    appendChatBubble(text, 'watty-user');
+
+    // Simulate smart thinking indicator
+    const thinkingBubble = appendChatBubble('Thinking...', 'watty-bot');
+
+    setTimeout(() => {
+      const answer = generateWattyResponse(text);
+      thinkingBubble.textContent = answer;
+      wattyMessagesContainer.scrollTop = wattyMessagesContainer.scrollHeight;
+    }, 450);
+  }
+
+  function appendChatBubble(text, className) {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${className}`;
+    bubble.textContent = text;
+    wattyMessagesContainer.appendChild(bubble);
+    wattyMessagesContainer.scrollTop = wattyMessagesContainer.scrollHeight;
+    return bubble;
+  }
+
+  function generateWattyResponse(query) {
+    const q = query.toLowerCase();
+
+    if (q.includes('swollen') || q.includes('heat') || q.includes('fire') || q.includes('safe to store')) {
+      return 'Tape the terminals, keep it away from heat and combustibles, and store it in a non-flammable container like a metal tin or bucket of sand. Never recharge or puncture it!';
+    }
+    if (q.includes('drop-off') || q.includes('where') || q.includes('take') || q.includes('near')) {
+      return 'You can drop them off at certified retail bins like Best Buy, Home Depot, Batteries Plus, or Hillsborough County hazardous waste facilities. Tap "Find drop-off near me" on your scan to see driving directions!';
+    }
+    if (q.includes('tape') || q.includes('terminal')) {
+      return 'Use non-conductive electrical tape or clear packing tape directly over the positive and negative ends. This stops accidental short circuits and sparks in transit!';
+    }
+    if (q.includes('alkaline') || q.includes('trash') || q.includes('bin')) {
+      return 'While single-use alkaline batteries are legally allowed in some municipal garbage, taking them to a recycling drop-off recovers valuable zinc and steel and prevents landfill leaching.';
+    }
+
+    return "I'm Watty! Keep dead batteries away from regular trash to prevent truck fires. Always tape exposed terminals and use our map to locate a certified drop-off!";
+  }
+
+  // ==========================================================================
+  // Feedback & Utilities
+  // ==========================================================================
+  function setLoadingText(msg) {
+    if (loadingSubMessage) {
+      loadingSubMessage.textContent = msg;
     }
   }
 
   function showError(msg) {
-    if (errorMessage && errorBanner) {
-      errorMessage.textContent = msg || 'An error occurred. Please try again.';
-      errorBanner.classList.remove('hidden');
+    if (errorToast && errorToastText) {
+      errorToastText.textContent = msg;
+      errorToast.classList.remove('hidden');
     }
   }
 
-  function clearError() {
-    if (errorBanner) {
-      errorBanner.classList.add('hidden');
+  function dismissError() {
+    if (errorToast) {
+      errorToast.classList.add('hidden');
     }
   }
 
-  // Run on DOM ready
+  // Initialize on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
