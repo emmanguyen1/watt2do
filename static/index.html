@@ -197,23 +197,36 @@ const V = {
       <div style="text-align:center;padding:20px 0">
         <h1>Got a dead battery?</h1>
         <p class="m" style="max-width:380px;margin:0 auto 24px">
-          Snap a photo. We tell you what it is, how to handle it safely, and where to drop it off.
+          Snap a photo or stream your camera. We tell you what it is, how to handle it safely, and where to drop it off.
         </p>
 
-        <div style="position:relative;width:210px;height:210px;margin:0 auto 20px;cursor:pointer" data-a="scan" role="button" aria-label="Take or upload battery photo">
-          <div style="width:100%;height:100%;border-radius:50%;border:4px solid var(--ol);display:flex;align-items:center;justify-content:center;background:var(--cd);box-shadow:0 0 30px rgba(198,244,50,0.2);position:relative;overflow:hidden">
-            <div style="color:var(--ol);position:relative;z-index:2">${IC.cam}</div>
+        <div style="position:relative;width:240px;height:240px;margin:0 auto 20px;border-radius:50%;border:4px solid var(--ol);display:flex;align-items:center;justify-content:center;background:var(--cd);box-shadow:0 0 30px rgba(198,244,50,0.25);overflow:hidden">
+          <video id="camera" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:none"></video>
+          <div id="cam-placeholder" style="color:var(--ol);display:flex;flex-direction:column;align-items:center;gap:8px">
+            ${IC.cam}
+            <span class="sm" style="font-weight:700">Live Camera</span>
           </div>
+          <div class="scan-sweep" style="position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(198,244,50,0.22),transparent);animation:sweep 2.4s ease-in-out infinite;pointer-events:none"></div>
         </div>
 
-        <button class="cta" data-a="scan" style="margin-bottom:12px;padding:0 32px">
-          Scan an item
-        </button>
-        <div>
-          <button class="ch sm" data-a="scan">Upload from gallery</button>
-        </div>
-        <div style="margin-top:16px">
-          <button class="ch sm" data-a="go" data-v="manual">Select item manually</button>
+        <p id="cam-status-msg" class="m sm" role="status" style="min-height:20px;margin-bottom:14px"></p>
+
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <button id="btn-cam-start" class="cta" data-a="cam-start" style="padding:0 32px">
+            Start live camera
+          </button>
+          <button id="btn-cam-capture" class="cta" data-a="cam-capture" style="padding:0 32px;background:#fff;color:#0E1410" hidden>
+            📸 Capture & Identify
+          </button>
+          <button id="btn-cam-stop" class="ch sm" data-a="cam-stop" hidden>
+            Stop camera
+          </button>
+          <button class="ch sm" data-a="upload" style="margin-top:4px">
+            Upload from gallery
+          </button>
+          <button class="ch sm" data-a="go" data-v="manual" style="border:0;text-decoration:underline">
+            Select item manually
+          </button>
         </div>
       </div>
 
@@ -574,7 +587,83 @@ function render() {
   theme();
 }
 
+let cameraStream = null;
+
+async function startCamera() {
+  const vid = $('#camera');
+  const placeholder = $('#cam-placeholder');
+  const btnStart = $('#btn-cam-start');
+  const btnCapture = $('#btn-cam-capture');
+  const btnStop = $('#btn-cam-stop');
+  const msg = $('#cam-status-msg');
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    if (msg) msg.textContent = 'Camera is unavailable in this browser. Upload a photo instead.';
+    return;
+  }
+
+  try {
+    if (msg) msg.textContent = 'Requesting camera access…';
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+    });
+    if (vid) {
+      vid.srcObject = cameraStream;
+      vid.style.display = 'block';
+      await vid.play();
+    }
+    if (placeholder) placeholder.style.display = 'none';
+    if (btnStart) btnStart.hidden = true;
+    if (btnCapture) btnCapture.hidden = false;
+    if (btnStop) btnStop.hidden = false;
+    if (msg) msg.textContent = 'Point camera at the battery label and tap Capture & Identify.';
+  } catch (err) {
+    if (msg) msg.textContent = err.name === 'NotAllowedError' ? 'Camera permission was denied. Upload a photo instead.' : 'Could not start camera: ' + err.message;
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  const vid = $('#camera');
+  const placeholder = $('#cam-placeholder');
+  const btnStart = $('#btn-cam-start');
+  const btnCapture = $('#btn-cam-capture');
+  const btnStop = $('#btn-cam-stop');
+  const msg = $('#cam-status-msg');
+
+  if (vid) {
+    vid.pause();
+    vid.srcObject = null;
+    vid.style.display = 'none';
+  }
+  if (placeholder) placeholder.style.display = 'flex';
+  if (btnStart) btnStart.hidden = false;
+  if (btnCapture) btnCapture.hidden = true;
+  if (btnStop) btnStop.hidden = true;
+  if (msg) msg.textContent = '';
+}
+
+async function captureCamera() {
+  const vid = $('#camera');
+  if (!vid || !cameraStream) return;
+  const width = vid.videoWidth || 640;
+  const height = vid.videoHeight || 480;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').drawImage(vid, 0, 0, width, height);
+  stopCamera();
+  canvas.toBlob(blob => {
+    if (blob) scan(blob);
+  }, 'image/jpeg', 0.9);
+}
+
 function go(v) {
+  if (v !== 'scan') stopCamera();
   if (location.hash === '#' + v) render();
   else location.hash = v;
 }
@@ -809,7 +898,11 @@ document.addEventListener('click', e => {
   const a = b.dataset.a, v = b.dataset.v, F = M.F;
   if (a === 'tab') { M.tab = v; M.err = ''; render(); }
   else if (a === 'guest') { S.user = { name: 'Guest Hero', guest: 1 }; sv(); go('home'); }
-  else if (a === 'scan') { $('#fi').click(); }
+  else if (a === 'scan') { go('scan'); }
+  else if (a === 'cam-start') { startCamera(); }
+  else if (a === 'cam-capture') { captureCamera(); }
+  else if (a === 'cam-stop') { stopCamera(); }
+  else if (a === 'upload') { $('#fi').click(); }
   else if (a === 'go') { go(v); }
   else if (a === 'find') { F.f = v; go('find'); fetchBackendDropoffs(F.u ? F.u.lat : 28.06, F.u ? F.u.lng : -82.41); }
   else if (a === 'theme') { S.theme = eff() === 'dark' ? 'light' : 'dark'; sv(); render(); }
@@ -878,7 +971,10 @@ document.addEventListener('submit', e => {
 });
 
 $('#fi').addEventListener('change', e => { scan(e.target.files[0]); e.target.value = ''; });
-addEventListener('hashchange', render);
+addEventListener('hashchange', () => {
+  if (location.hash !== '#scan') stopCamera();
+  render();
+});
 
 $('#logo').innerHTML = BAT(30) + '<span>Watt<b>2</b>Do</span>';
 $('#fab').innerHTML = MS(38);
