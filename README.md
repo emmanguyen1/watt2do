@@ -1,4 +1,4 @@
-# Watt2Do
+# ⚡ Watt2Do — Watt's Next? Watt2Do.
 
 Watt2Do is an intelligent battery and electronic waste identification and safe disposal assistant designed for Hillsborough County, Florida. It helps residents identify electronic items and battery chemistries, evaluate their physical condition, receive critical safety guidance, and locate verified municipal and commercial drop-off facilities.
 

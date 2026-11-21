@@ -125,7 +125,8 @@ async function plan(request) {
 
 export const server = createServer(async (request,response) => {
   try {
-    const path = new URL(request.url,'http://localhost').pathname;
+    const url = new URL(request.url,'http://localhost');
+    const path = url.pathname;
     if (request.method === 'GET' && Object.hasOwn(assets,path)) {
       const [file,type] = assets[path];
       const content = await readFile(new URL('./public/' + file,import.meta.url));
@@ -155,6 +156,33 @@ export const server = createServer(async (request,response) => {
     }
     if (request.method === 'POST' && path === '/api/plan') return respond(response,200,await plan(request));
     if (request.method === 'POST' && path === '/api/scan') return respond(response,200,await scan(request));
+    if (request.method === 'GET' && path === '/api/dropoffs') {
+      const lat = parseFloat(url.searchParams.get('lat')) || 28.06;
+      const lng = parseFloat(url.searchParams.get('lng')) || -82.41;
+      const filter = url.searchParams.get('filter') || 'all';
+      const itemType = filter === 'ewaste' ? 'laptop' : 'rechargeable';
+      const sites = locations(itemType, 'intact', [lat, lng]);
+      const results = sites.map((s, i) => {
+        const accepts = [];
+        if (s.county || /battery/i.test(s.name)) accepts.push('batteries');
+        if (/Best Buy|Staples|Recycling|eCycle/i.test(s.name)) accepts.push('ewaste');
+        if (s.county || /HHW|Hazardous/i.test(s.name)) accepts.push('hazardous');
+        if (!accepts.length) accepts.push('batteries');
+        return {
+          id: 'dropoff-' + i,
+          name: s.name,
+          lat: s.lat,
+          lng: s.lng,
+          address: s.address,
+          hours: s.hours,
+          phone: s.phone,
+          accepts,
+          openNow: true,
+          miles: s.miles
+        };
+      });
+      return respond(response, 200, { ok: true, results });
+    }
     return respond(response,404,{error:'Page not found.'});
   } catch (error) {
     const status = error instanceof RequestError ? error.status : 503;
