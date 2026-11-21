@@ -1,53 +1,131 @@
 # Watt2Do
 
-Watt2Do helps people in Hillsborough County identify a battery or electronic item, check how to handle it, and find an appropriate drop-off.
+> **Tagline:** Watt's Next? Watt2Do.  
+> **Tracks:** Sustainability | Best Use of the Google Gemini API  
+> **Team Watt's Next** | HackJam 26 | Person A, Person B, Person C
 
-## Run locally
+**Watt2Do** ("what to do" with a dead battery) is a mobile web application designed to prevent battery fires and guide safe disposal.
 
-Requires Node.js 22 or newer. From this directory, run `npm start` and open [localhost:3001](http://localhost:3001). There is no package installation step.
+**The Hook:** Lithium-ion and household batteries tossed into standard trash start fires in garbage trucks and recycling facilities. Watt2Do empowers people to snap or upload a photo of an item; Gemini Vision identifies the battery chemistry and detects physical damage (swollen, leaking, corroded), displays immediate safety precautions, and plots nearby verified drop-off locations on an interactive **Google Map**.
 
-The manual picker, guidance, and location list work without a Gemini key. To enable the live camera and photo upload, get a [Gemini Developer API key](https://aistudio.google.com/api-keys), copy `.env.example` to `.env`, fill in `GEMINI_API_KEY`, and restart. The key stays on the server. The default model is Gemini 3.5 Flash-Lite. Browser camera and location access require localhost or an HTTPS origin and user permission.
+---
 
-## Demo workflow
+## Architecture & Codebase Overview
 
-1. Scan one item or choose a type manually. For a quick map demo, choose **Rechargeable battery or tool pack**.
-2. Select **Intact and cool**, then select **Show guidance and drop-offs**. The map starts with Tampa. Enter a supported local ZIP or choose **Use my location** to refine distance sorting.
-3. Try the same type with **Swollen** to see emergency indicators, handling guidance and time-aware county contact information.
+The repository is organized across clear modular boundaries:
 
-Watt2Do uses approximate straight-line distance and a Tampa-area directory. Call ahead about exact acceptance, hours, limits, and fees. Intact power banks show call-first county contacts. Damaged items receive safety guidance and no routine drop-off directions.
+```text
+watt2do/
+├── app.py                      # Flask server (port 5000): /api/health, /api/scan, registers dropoffs_bp
+├── vision.py                   # Gemini Vision API integration and structured JSON response validator
+├── dropoffs.py                 # Blueprint dropoffs_bp: GET /api/dropoffs & GET /api/maps-config
+├── data/
+│   └── fallback_dropoffs.json  # Hand-verified Hillsborough County / USF area drop-off locations
+├── static/
+│   ├── map.js                  # Google Maps JavaScript API module (global Watt2DoMap)
+│   ├── index.html              # Mobile-first scanner UI
+│   ├── app.js                  # Frontend scan flow & drop-off list renderer
+│   └── style.css               # Mobile-responsive styles
+├── requirements.txt            # Python dependencies (Flask, python-dotenv)
+├── .env.example                # Template for environment keys
+└── .gitignore                  # Excludes .env, build files, and cache
+```
 
-## How it works
+---
 
-- The browser captures snapshots or takes an uploaded image. The Node server validates its type and size, sends it to Gemini and checks the structured response. The browser uses the suggestion to fill the editable type picker. Gemini can also suggest a visible condition. Review or correct the suggestion and confirm it before continuing. Only the user can mark an item as intact and cool.
-- Application rules determine safety guidance and facility eligibility. Gemini provides only an item suggestion. It does not choose locations or determine whether an item is safe to transport.
-- The server does not save images. Google processes submitted frames under [Gemini API terms](https://ai.google.dev/gemini-api/docs/terms). Google may use free-tier submissions to improve its products. Keep personal information out of the camera frame.
+## Where to Upload / Set API Keys
 
-## Frameworks, libraries and services
+All keys must be placed in a local `.env` file in the project root. This file is **ignored by Git** and will **never be committed** to the public repository.
 
-- **Frameworks** — None. The server uses Node.js built-in modules. The frontend uses HTML, CSS and browser JavaScript.
-- **Leaflet 1.9.4** — interactive map, loaded from unpkg. [Leaflet](https://leafletjs.com/)
-- **OpenStreetMap** — basemap tiles and attribution. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
-- **Google Maps URLs** — external directions links.
-- **Google Gemini Developer API** — image classification. [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite)
-- **OpenAI Codex** — AI-assisted implementation, source research and verification.
+### 1. Create your local `.env` file
+In the project directory, copy the template:
+```bash
+cp .env.example .env
+```
 
-## Hackathon authorship and AI disclosure
+### 2. Enter your keys in `.env`
+Open `.env` in VS Code or your editor and add:
 
-Development in this folder began after the participant reported that the event had started. The participant reused the project idea and specified its scope and requirements. This implementation was written in a new folder without copying project files, code, or documents from the pre-event prototype.
+```env
+# 1. Google Gemini Developer API (Person A)
+# Get from: https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=AIzaSyYourGeminiApiKeyHere
+MOCK_SCAN=0
 
-OpenAI Codex generated the initial code, interface, directory, rules, README, and verification scripts and helped research public sources. The participant directed the build, including the name, camera workflow, grouped item picker, safety-first routing, and drop-off map. Add any additional participant-written code, design, research, and manual testing to this section before submission.
+# 2. Google Maps JavaScript API (Person B - Browser Key)
+# Restriction: "Maps JavaScript API", HTTP Referrer: http://localhost:5000/*
+GOOGLE_MAPS_BROWSER_KEY=AIzaSyYourBrowserMapKeyHere
 
-Suggested MLH submission disclosure: “I used OpenAI Codex to generate and verify Watt2Do’s initial frontend, backend, and source-backed directory from my requirements during the event. Watt2Do also uses Google Gemini at runtime to suggest an item type from camera frames. The app uses separate user-confirmed conditions and written rules to determine safety guidance and drop-off results.”
+# 3. Google Places API (New) (Person B - Server Key)
+# Restriction: "Places API (New)", Server-side only (never exposed to browser)
+GOOGLE_PLACES_SERVER_KEY=AIzaSyYourServerPlacesKeyHere
 
-## Public data sources
+FLASK_RUN_PORT=5000
+```
 
-- [Hillsborough County battery collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries)
-- [Hillsborough County electronics collection rules](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics)
-- [Hillsborough County household hazardous waste collection](https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-household-hazardous-waste)
-- [EPA lithium-ion battery guidance](https://www.epa.gov/recycle/frequent-questions-lithium-ion-batteries)
-- [Batteries Plus](https://www.batteriesplus.com/blog/power/battery-and-light-bulb-recycling), [Staples](https://www.staples.com/stores/recycling), [Best Buy](https://www.bestbuy.com/site/services/recycling/pcmcat149900050025.c), [eSmart](https://esmartrecycling.com/individual-dropoffs/) and [Posey](https://poseypowerbatteries.com/?page_id=614)
-- [Hillsborough County Environmental Protection Commission lead-acid directory](https://www.epchc.org/home/showpublisheddocument/3228/639065853819430000)
+### 3. Production Deployment Key Upload
+When deploying (e.g. Google Cloud Run, Render, or Vercel), upload these exact same variable names (`GEMINI_API_KEY`, `GOOGLE_MAPS_BROWSER_KEY`, `GOOGLE_PLACES_SERVER_KEY`) into your hosting provider's **Environment Variables** dashboard.
 
-## Optional Flask scan backend
+---
 
-The Node.js app on port 3001 is the demo entry point. The repository also includes the separate Flask scan API from the team brief. The browser demo uses the Node.js API. To test Flask separately, install `requirements.txt` and run `python app.py` on port 5000.
+## Controlling Person B's Database & Map Features
+
+Person B manages the drop-off data pipeline and map visualization:
+
+### 1. Fallback Database (`data/fallback_dropoffs.json`)
+- Contains 12+ hand-verified drop-offs throughout the Tampa and USF area (Home Depot, Best Buy, Staples, Target, Batteries Plus Bulbs, USF EHS, and Hillsborough County Solid Waste Centers).
+- Each entry includes:
+  ```json
+  {
+    "id": "tampa-hd-fowler",
+    "name": "The Home Depot - Battery & Bulb Recycling",
+    "lat": 28.0551,
+    "lng": -82.4385,
+    "address": "1712 E Fowler Ave, Tampa, FL 33612",
+    "openNow": true,
+    "hours": "Mon-Sat 6:00 AM - 10:00 PM, Sun 8:00 AM - 8:00 PM",
+    "accepts": ["batteries", "hazardous"]
+  }
+  ```
+- **Control:** You can easily add new facilities or edit hours and accepted waste types directly in `data/fallback_dropoffs.json`.
+
+### 2. Backend Search & Filtering (`dropoffs.py`)
+- **Endpoint:** `GET /api/dropoffs?lat=<lat>&lng=<lng>&filter=<batteries|ewaste|hazardous>&radiusKm=<km>`
+- Queries Google **Places API (New)** Text Search (`https://places.googleapis.com/v1/places:searchText`) biased by the user's GPS coordinates.
+- Computes straight-line distance via the **Haversine formula**, rounds to 1 decimal place, sorts ascending, and limits to 10 results.
+- **Fail-safe fallback:** If `GOOGLE_PLACES_SERVER_KEY` is not provided, times out (5 seconds), or returns no locations, `dropoffs.py` automatically falls back to `data/fallback_dropoffs.json` with `"source": "fallback"`.
+
+### 3. Google Maps Module (`static/map.js`)
+- Exposes `Watt2DoMap.show(containerId, userLocation, results)` and `Watt2DoMap.clear()`.
+- Dynamically fetches the browser key from `GET /api/maps-config` and loads the **Google Maps JavaScript API** on demand.
+- Visual elements:
+  - **User beacon:** Blue marker indicating "You are here".
+  - **Numbered location markers:** Pinpointed for each nearby drop-off facility.
+  - **Interactive Info Windows:** Click any marker to view facility name, address, distance (km), current open status, and accepted disposal categories.
+  - **Auto-fit bounds:** Smoothly frames user location and nearby sites.
+  - **Default location:** Centers on the USF Tampa area (`28.06, -82.41`) if geolocation permission is denied.
+
+---
+
+## How to Run Locally
+
+### 1. Main Flask Application (Port 5000)
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the Flask development server
+python3 app.py
+```
+Open **[http://localhost:5000](http://localhost:5000)** in your browser.
+
+- Check server health: `curl http://localhost:5000/api/health`
+- Check maps configuration: `curl http://localhost:5000/api/maps-config`
+- Check drop-offs API: `curl "http://localhost:5000/api/dropoffs?lat=28.06&lng=-82.41&filter=batteries"`
+
+### 2. Lightweight Node.js Demo (Port 3001)
+If testing the standalone JavaScript prototype:
+```bash
+npm start
+```
+Open **[http://localhost:3001](http://localhost:3001)**.
