@@ -8,9 +8,9 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 - **Visual Item Identification**: Leverages the Google Gemini Developer API to analyze photos or live camera captures to suggest battery chemistry and device classification.
 - **Safety-First Handling Rules**: Differentiates between intact items and compromised items (swollen, leaking, or hot). Automatically surfaces hazardous waste protocols, emergency handling precautions, and regulatory contacts for high-risk items.
-- **Local Drop-Off Directory & Interactive Mapping**: Features an interactive Leaflet and OpenStreetMap interface with geolocation-based distance calculations, filtering municipal collection centers, retail drop-off partners (e.g., Batteries Plus, Best Buy, Staples), and county hazardous waste sites.
+- **Local Drop-Off Directory & Interactive Mapping**: Features an interactive Leaflet and Google Maps interface with geolocation-based distance calculations, filtering municipal collection centers, retail drop-off partners (e.g., Batteries Plus, Best Buy, Staples), and county hazardous waste sites.
 - **Privacy & Security by Design**: No user images are stored on disk. API keys remain protected server-side, and client-side confirmation ensures the user verifies item conditions before proceeding.
-- **Zero-Dependency Node.js Server**: The primary application runs on modern Node.js using native modules, with an alternative Python Flask implementation available.
+- **Dual Server Support**: Offers a lightweight zero-dependency Node.js implementation as well as a full Python Flask backend.
 
 ---
 
@@ -18,8 +18,8 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 ### Prerequisites
 
-- **Node.js**: Version 22.0.0 or newer
-- *(Optional)* **Gemini API Key**: Required for live camera and image recognition features. Manual selection and the facility directory work without a key. Obtain a key from [Google AI Studio](https://aistudio.google.com/api-keys).
+- **Python 3.10+** (for Flask backend) or **Node.js 22+** (for Node backend)
+- *(Optional)* **Gemini & Google Maps API Keys**: Obtain from [Google AI Studio](https://aistudio.google.com/api-keys) and [Google Cloud Console](https://console.cloud.google.com/).
 
 ### Installation & Execution
 
@@ -29,20 +29,40 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
    cd watt2do
    ```
 
-2. **Configure environment variables (optional)**:
+2. **Configure environment variables**:
    Copy the example environment configuration:
    ```bash
    cp .env.example .env
    ```
-   Add your Gemini Developer API key to `.env`:
+   Add your credentials to `.env`:
    ```env
+   # Gemini Vision API
    GEMINI_API_KEY=your_gemini_api_key_here
-   GEMINI_MODEL=gemini-3.5-flash-lite
-   PORT=3001
-   ```
-   > **Note:** `.env` is included in `.gitignore` to prevent credentials from being tracked in version control. Never commit API keys or secret tokens.
+   GEMINI_MODEL=gemini-2.5-flash
+   MOCK_SCAN=0
 
-3. **Start the application**:
+   # Google Maps JavaScript API (Browser)
+   GOOGLE_MAPS_BROWSER_KEY=your_maps_browser_key_here
+
+   # Google Places API (New) (Server-only)
+   GOOGLE_PLACES_SERVER_KEY=your_places_server_key_here
+
+   PORT=5000
+   ```
+   > **Important Security Notice:** `.env` is listed in `.gitignore` to prevent credentials from being tracked. Never commit API keys or secret tokens to git.
+
+3. **Start the Flask Application (Port 5000)**:
+   ```bash
+   pip install -r requirements.txt
+   python3 app.py
+   ```
+   Open [http://localhost:5000](http://localhost:5000) in your browser.
+
+   - Verify server health: `curl http://localhost:5000/api/health`
+   - Verify maps configuration: `curl http://localhost:5000/api/maps-config`
+   - Verify drop-offs endpoint: `curl "http://localhost:5000/api/dropoffs?lat=28.06&lng=-82.41&filter=batteries"`
+
+4. **Alternative: Lightweight Node.js Server (Port 3001)**:
    ```bash
    npm start
    ```
@@ -52,42 +72,37 @@ Watt2Do is an intelligent battery and electronic waste identification and safe d
 
 ## How It Works
 
-1. **Capture & Classify**: The user captures an image using a device camera or uploads a file. The server validates image dimensions and MIME type before sending the frame to the Gemini Developer API (`gemini-3.5-flash-lite`).
+1. **Capture & Classify**: The user captures an image using a device camera or uploads a file. The server validates image dimensions and MIME type before sending the frame to the Gemini Developer API (`gemini-2.5-flash` or `gemini-3.5-flash-lite`).
 2. **User Verification**: Gemini returns an initial item and condition suggestion. The user reviews and confirms the item type and physical condition. To ensure safety, only the user can certify an item as intact and cool.
 3. **Safety Routing**: Rule-based logic evaluates the confirmed condition. Damaged, swollen, or punctured batteries immediately trigger safety mitigation steps (e.g., isolation, non-flammable containers, sand/vermiculite) and suppress routine recycling directions in favor of specialized hazardous waste handling.
-4. **Locate Drop-Off Facilities**: Intact items display eligible drop-off centers sorted by straight-line distance, incorporating operational hours, contact details, and acceptance criteria.
+4. **Locate Drop-Off Facilities**: Intact items display eligible drop-off centers sorted by distance, incorporating operational hours, contact details, and acceptance criteria.
 
 ---
 
-## System Architecture & Tech Stack
+## Drop-Off Data Pipeline & Map Visualization
 
-- **Frontend**: Standard HTML5, CSS3, and modern browser JavaScript (ES modules).
-  - **Mapping**: [Leaflet 1.9.4](https://leafletjs.com/) with [OpenStreetMap](https://www.openstreetmap.org/) basemap tiles.
-  - **Navigation**: Direct external routing via Google Maps.
-- **Backend (Default)**: Node.js (native `node:http`, `node:crypto`, `node:fs`, ESM). Zero third-party runtime package dependencies.
-- **Backend (Python / Flask Alternative)**: A Python Flask REST API (`app.py`, `vision.py`, `dropoffs.py`) is also provided for Python environments.
-- **AI Classification**: [Google Gemini Developer API](https://ai.google.dev/) using `gemini-3.5-flash-lite`.
+The application provides a robust data pipeline and interactive map visualization:
 
----
+### 1. Fallback Database (`data/fallback_dropoffs.json`)
+- Contains 12+ hand-verified drop-offs throughout the Tampa and USF area (Home Depot, Best Buy, Staples, Target, Batteries Plus Bulbs, USF EHS, and Hillsborough County Solid Waste Centers).
+- Each entry includes physical address, operating hours, geolocation coordinates, and accepted materials (`batteries`, `ewaste`, `hazardous`).
+- **Customization:** Additional facilities, operating hours, or accepted waste types can be configured directly in `data/fallback_dropoffs.json`.
 
-## Running the Python / Flask Service (Alternative)
+### 2. Backend Search & Filtering (`dropoffs.py`)
+- **Endpoint:** `GET /api/dropoffs?lat=<lat>&lng=<lng>&filter=<batteries|ewaste|hazardous>&radiusKm=<km>`
+- Queries Google **Places API (New)** Text Search biased by user GPS coordinates.
+- Calculates great-circle distance via the **Haversine formula**, rounds to 1 decimal place, sorts ascending, and returns top results.
+- **Fail-Safe Fallback:** If `GOOGLE_PLACES_SERVER_KEY` is not provided, times out (5 seconds), or returns no locations, `dropoffs.py` automatically falls back to `data/fallback_dropoffs.json` with `"source": "fallback"`.
 
-If you prefer to run the Python backend:
-
-1. Create and activate a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Ensure `.env` is configured, then run:
-   ```bash
-   python app.py
-   ```
-   The Flask application will start on port 5000.
+### 3. Google Maps Module (`static/map.js`)
+- Exposes `Watt2DoMap.show(containerId, userLocation, results)` and `Watt2DoMap.clear()`.
+- Dynamically retrieves the browser key from `GET /api/maps-config` and loads the **Google Maps JavaScript API** on demand.
+- Visual elements:
+  - **User beacon:** Blue marker indicating current position.
+  - **Numbered markers:** Precise pins for each nearby drop-off facility.
+  - **Interactive Info Windows:** Click any marker to view facility name, address, distance (km), current open status, and accepted disposal categories.
+  - **Auto-fit bounds:** Smoothly frames the user's location and nearby sites.
+  - **Default location:** Centers on the Tampa/USF area (`28.06, -82.41`) if geolocation permission is denied.
 
 ---
 
