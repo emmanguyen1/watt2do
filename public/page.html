@@ -140,30 +140,30 @@ const V = {
     return `
     <h1>Hi, ${esc(S.user ? S.user.name : 'there')}</h1>
     <p class="m" style="margin-bottom:20px">What do you want to do?</p>
-    <div class="g">
-      <button class="opt p" data-a="go" data-v="find">
-        <span style="color:var(--ol)">${IC.pin}</span>
-        <span><b>Find drop-off points</b><span class="m">Just see where to take it near you.</span></span>
+    <div class="v-stack">
+      <button class="opt" data-a="go" data-v="find">
+        <span style="color:var(--ol);display:flex;align-items:center">${IC.pin}</span>
+        <span><b>Find drop-off points</b><span class="m sm">Just see where to take it near you.</span></span>
       </button>
       <button class="opt p" data-a="go" data-v="scan">
-        <span style="color:var(--ol)">${IC.cam}</span>
-        <span><b>Scan an item</b><span class="m">Identify it and get safe disposal steps.</span></span>
+        <span style="color:var(--ol);display:flex;align-items:center">${IC.cam}</span>
+        <span><b style="color:var(--ol)">Scan an item</b><span class="m sm">Identify it and get safe disposal steps.</span></span>
       </button>
     </div>
     <div style="margin-top:28px">
       <h2 style="font-size:20px;margin-bottom:12px">Recent scans</h2>
       ${h.length ? h.map(x => `
-        <div class="cd row" style="margin-bottom:10px;justify-content:space-between">
+        <div class="recent-item" data-a="scanitem" data-item="${esc(x.item)}">
           <div>
             <b>${esc(x.item)}</b>
             <div class="m sm">${esc(x.type || 'Battery')} &bull; ${esc(x.d)}</div>
           </div>
-          <span style="color:var(--mu)">${IC.chev}</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--mu)"><path d="M9 18l6-6-6-6"/></svg>
         </div>
       `).join('') : `
         <div class="cd" style="text-align:center;padding:24px">
-          <p class="m">No scans yet. Try scanning your first dead battery.</p>
-          <button class="cta" data-a="go" data-v="scan" style="margin-top:10px">Scan an item</button>
+          <p class="m" style="margin-bottom:12px">No scans yet. Try scanning your first dead battery.</p>
+          <button class="cta" data-a="go" data-v="scan">Scan an item</button>
         </div>
       `}
     </div>`;
@@ -445,28 +445,40 @@ const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 
 function render() {
   let v = location.hash.slice(1);
-  if (!S.user && v !== 'welcome') v = 'home';
+  if (!S.user && v !== 'welcome') v = 'welcome';
   else if (!V[v] || v === 'welcome' || v === 'load') v = 'home';
   const x = M.load ? 'load' : v;
-  $('#app').innerHTML = V[x]();
+  const isLanding = (x === 'welcome');
+
+  const appEl = $('#app');
+  const hdEl = document.querySelector('.hd');
+  if (appEl) {
+    appEl.classList.toggle('landing', isLanding);
+    appEl.innerHTML = V[x]();
+  }
+  if (hdEl) {
+    hdEl.classList.toggle('landing', isLanding);
+  }
 
   const n = $('#nav');
-  n.hidden = false;
-  n.innerHTML = [
-    ['home', 'Home', IC.home],
-    ['scan', 'Scan', IC.cam.replace(/44/g, '20')],
-    ['find', 'Find', IC.pin.replace(/44/g, '20')],
-    ['impact', 'Impact', IC.bolt],
-    ['profile', 'Profile', IC.usr]
-  ].map(a => `
-    <button data-a="go" data-v="${a[0]}" ${v === a[0] ? 'aria-current="page"' : ''}>
-      ${a[2]}<span>${a[1]}</span>
-    </button>
-  `).join('');
+  if (n) {
+    n.hidden = isLanding || !S.user;
+    n.innerHTML = [
+      ['home', 'Home', IC.home],
+      ['scan', 'Scan', IC.cam.replace(/44/g, '20')],
+      ['find', 'Find', IC.pin.replace(/44/g, '20')],
+      ['impact', 'Impact', IC.bolt],
+      ['profile', 'Profile', IC.usr]
+    ].map(a => `
+      <button data-a="go" data-v="${a[0]}" ${v === a[0] ? 'aria-current="page"' : ''}>
+        ${a[2]}<span>${a[1]}</span>
+      </button>
+    `).join('');
+  }
 
   const prb = $('#prb');
   if (prb) {
-    prb.hidden = false;
+    prb.hidden = isLanding || !S.user;
     prb.innerHTML = IC.usr;
   }
 
