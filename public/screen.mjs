@@ -32,6 +32,54 @@ async function api(path,options) {
   return result;
 }
 
+const historyKey = 'watt2do.scanHistory.v1';
+const historyLimit = 20;
+const historyList = byId('scan-history-list');
+const historyEmpty = byId('scan-history-empty');
+const historyClear = byId('scan-history-clear');
+let scanHistory = [];
+
+try {
+  const stored = JSON.parse(localStorage.getItem(historyKey) || '[]');
+  if (Array.isArray(stored)) {
+    scanHistory = stored.filter(entry => entry && typeof entry.type === 'string' &&
+      typeof entry.condition === 'string' && Number.isFinite(entry.date) &&
+      Number.isFinite(new Date(entry.date).getTime())).slice(0,historyLimit);
+  }
+} catch {
+  // Keep history usable on this page if browser storage is unavailable.
+}
+
+function renderScanHistory() {
+  const entries = scanHistory.map(entry => {
+    const row = textElement('li','');
+    const date = new Date(entry.date);
+    const time = textElement('time',date.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}));
+    time.dateTime = date.toISOString();
+    const typeLabel = [...item.options].find(option => option.value === entry.type)?.textContent || entry.type;
+    const conditionLabel = [...condition.options].find(option => option.value === entry.condition)?.textContent || 'Condition unsure';
+    row.append(textElement('strong',typeLabel),textElement('span','Suggested condition: ' + conditionLabel),time);
+    return row;
+  });
+  historyList.replaceChildren(...entries);
+  historyEmpty.hidden = entries.length > 0;
+  historyClear.hidden = entries.length === 0;
+}
+
+function saveScanHistory() {
+  try {
+    localStorage.setItem(historyKey,JSON.stringify(scanHistory));
+  } catch {
+    // Keep history usable on this page if browser storage is unavailable.
+  }
+  renderScanHistory();
+}
+
+historyClear.addEventListener('click',() => {
+  scanHistory = [];
+  saveScanHistory();
+});
+
 try {
   catalog = await api('/api/options');
   for (const [label,choices] of Object.entries(catalog.groups)) {
@@ -41,6 +89,7 @@ try {
     item.append(group);
   }
   for (const [value,name] of Object.entries(catalog.conditions)) condition.add(new Option(name,value));
+  renderScanHistory();
   byId('submit-item').disabled = false;
   byId('scan-controls').hidden = !catalog.vision;
   if (!catalog.vision) byId('scan-message').textContent = 'Camera recognition is unavailable. You can choose a type below.';
@@ -92,6 +141,12 @@ function recognize(frame,result) {
   item.value = result.type === 'unsure' ? '' : result.type;
   const suggestion = Object.hasOwn(catalog.conditions,result.condition) ? result.condition : 'unsure';
   condition.value = suggestion;
+  if (!['unsure','unknownBattery'].includes(result.type) &&
+      [...item.options].some(option => option.value === result.type)) {
+    scanHistory.unshift({type:result.type,condition:suggestion,date:Date.now()});
+    scanHistory.length = Math.min(scanHistory.length,historyLimit);
+    saveScanHistory();
+  }
   conditionReview.hidden = false;
   conditionChecked.checked = false;
   conditionChecked.required = true;
@@ -208,7 +263,7 @@ function showAdvice(advice) {
 function directions(site) {
   return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(site.address);
 }
-let mapRender = Promise.resolve();
+
 function showSites(sites,position,signal) {
   sites.forEach((site, index) => {
     const card = textElement('li','');

@@ -11,15 +11,6 @@
   let currentInfoWindow = null;
   let googleScriptLoadingPromise = null;
 
-  // Gracefully handle Google Maps authorization or referrer domain mismatch
-  global.gm_authFailure = function () {
-    console.warn('Google Maps auth failure (domain/referrer restriction). Switching seamlessly to vector fallback.');
-    const mapEl = document.getElementById('map');
-    if (mapEl) {
-      Watt2DoMap.renderSvgFallback(mapEl, null, window.Watt2DoMapLastResults || []);
-    }
-  };
-
   const DEFAULT_CENTER = { lat: 28.06, lng: -82.41 }; // USF Tampa area
 
   /**
@@ -144,7 +135,6 @@
      * @param {Array} results - Dropoff results from /api/dropoffs.
      */
     show(containerId, userLocation, results) {
-      global.Watt2DoMapLastResults = Array.isArray(results) ? results : [];
       const container = document.getElementById(containerId);
       if (!container) {
         console.error(`Watt2DoMap: Container element with id '${containerId}' not found.`);
