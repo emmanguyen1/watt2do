@@ -44,12 +44,87 @@ function respond(response,status,payload) {
   response.end(JSON.stringify(payload));
 }
 
+// Map new compact item type keys → old frontend category/batteryType fields
+const typeMap = {
+  household:     {category:'battery',  batteryType:'alkaline'},
+  rechargeable:  {category:'battery',  batteryType:'lithium_ion'},
+  primary:       {category:'battery',  batteryType:'lithium_ion'},
+  button:        {category:'battery',  batteryType:'lithium_coin'},
+  starter:       {category:'battery',  batteryType:'lead_acid'},
+  ebike:         {category:'battery',  batteryType:'lithium_ion'},
+  unknownBattery:{category:'battery',  batteryType:'other'},
+  phone:         {category:'ewaste',   batteryType:null},
+  tablet:        {category:'ewaste',   batteryType:null},
+  laptop:        {category:'ewaste',   batteryType:null},
+  headphones:    {category:'ewaste',   batteryType:null},
+  watch:         {category:'ewaste',   batteryType:null},
+  camera:        {category:'ewaste',   batteryType:null},
+  power:         {category:'ewaste',   batteryType:null},
+  desktop:       {category:'ewaste',   batteryType:null},
+  monitor:       {category:'ewaste',   batteryType:null},
+  peripherals:   {category:'ewaste',   batteryType:null},
+  router:        {category:'ewaste',   batteryType:null},
+  printer:       {category:'ewaste',   batteryType:null},
+  scanner:       {category:'ewaste',   batteryType:null},
+  cable:         {category:'other',    batteryType:null},
+  tv:            {category:'ewaste',   batteryType:null},
+  speaker:       {category:'ewaste',   batteryType:null},
+  controller:    {category:'ewaste',   batteryType:null},
+  console:       {category:'ewaste',   batteryType:null},
+  unsure:        {category:'unknown',  batteryType:null},
+};
+
+function instructionsFor(category, batteryType, damaged) {
+  if (damaged === true) return [
+    'If there is smoke, fire, or immediate fire risk, move away and call 911.',
+    'Stop using or charging it. Leave any built-in battery in place and avoid opening or puncturing it.',
+    'Keep it out of trash, curbside recycling and regular battery drop-off bins.',
+    'Call Hillsborough County Solid Waste at (813) 272-5680 or the manufacturer before moving it.',
+  ];
+  if (category === 'battery') {
+    if (batteryType === 'alkaline') return [
+      'Confirm the label says alkaline. Keep loose batteries out of curbside recycling.',
+      'Hillsborough County allows confirmed alkaline cells in household trash. Call ahead if you prefer a retail recycling option.',
+    ];
+    if (batteryType === 'lead_acid') return [
+      'Keep the battery intact and out of household trash and curbside recycling.',
+      'Call a lead-acid collector to confirm acceptance and handling before transporting it.',
+    ];
+    if (batteryType === 'other') return [
+      'Check the printed label or manufacturer instructions before choosing a drop-off.',
+      'Keep loose batteries out of curbside recycling and confirm your exact type with the collector.',
+    ];
+    return [
+      'Keep this battery out of household trash and curbside recycling.',
+      'For an intact loose battery, follow collector instructions for nonconductive tape or individual bagging.',
+      'Confirm acceptance for your battery type and size before visiting.',
+    ];
+  }
+  if (category === 'ewaste') return [
+    'Keep the device intact and leave any built-in battery in place.',
+    'Use an electronics recycler that accepts the item. Wipe personal data if applicable and safe.',
+  ];
+  if (category === 'hazardous') return [
+    'Keep the item separate from regular recycling and leave its casing intact.',
+    'Check with your household hazardous waste program before transporting it.',
+  ];
+  if (category === 'other') return [
+    'Check your local waste guide for the correct bin or reuse option for this item.',
+    'Confirm the item has no hidden battery before putting it into a regular waste stream.',
+  ];
+  return [
+    'Take a closer, well-lit photo of one item with the label facing the camera.',
+    'Check the product label or manufacturer instructions before choosing a disposal option.',
+  ];
+}
+
 const scanSchema = {
   type:'object',required:['type','description','markings','condition','conditionEvidence'],properties:{
     type:{type:'string',enum:Object.keys(labels)},description:{type:'string'},markings:{type:'string'},
     condition:{type:'string',enum:['intact','damaged','swollen','leaking','hot','unsure']},conditionEvidence:{type:'string'}
   }
 };
+
 async function scan(request) {
   if (!key) throw new RequestError(503,'Camera recognition needs a Gemini key. You can select your item manually.');
   const bytes = await readBody(request,maxImage);
@@ -73,8 +148,8 @@ async function scan(request) {
     'Use intact when there is one recognizable item, its exterior is clearly visible, and there are no visible signs of damage. Give a short reason based on visible condition.',
     'Use unsure if the item or its exterior is unclear or obscured. A photo cannot verify temperature or hidden damage. Leave conditionEvidence empty if unsure. Do not provide disposal recommendations.'
   ].join(' ');
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
-  const provider = await fetch(url,{
+  const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+  const provider = await fetch(apiUrl,{
     method:'POST', signal:AbortSignal.timeout(20000),
     headers:{'content-type':'application/json','x-goog-api-key':key},
     body:JSON.stringify({
@@ -95,10 +170,36 @@ async function scan(request) {
   if (type === 'primary' && !/\b(?:FR6|FR03|FR14505|single[ -]use lithium|primary lithium|Li[ -/]?FeS2)\b/i.test(markings)) type = 'unknownBattery';
   if (type === 'starter' && !/\b(?:lead[ -]acid|AGM|VRLA|CCA|Pb)\b/i.test(markings)) type = 'unknownBattery';
   const evidence = typeof suggestion.conditionEvidence === 'string' ? suggestion.conditionEvidence.trim().slice(0,160) : '';
-  const eligible = ['damaged','swollen','leaking','hot'].includes(suggestion.condition) || (suggestion.condition === 'intact' && type !== 'unsure');
+  const hazardConditions = ['damaged','swollen','leaking','hot'];
+  const eligible = hazardConditions.includes(suggestion.condition) || (suggestion.condition === 'intact' && type !== 'unsure');
   const condition = evidence && eligible ? suggestion.condition : 'unsure';
-  return {type,description:suggestion.description.slice(0,180),markings,condition,
-    conditionEvidence:condition === 'unsure' ? '' : evidence};
+
+  // Map to the format the frontend expects (compatible with old and new frontend)
+  const {category, batteryType} = typeMap[type] || {category:'unknown', batteryType:null};
+  const damaged = hazardConditions.includes(condition) ? true : (condition === 'intact' ? false : null);
+  const conditionLabel = damaged === true
+    ? (condition.charAt(0).toUpperCase() + condition.slice(1) + (evidence ? ': ' + evidence : ''))
+    : (condition === 'intact' ? 'Intact and cool' : 'Condition unconfirmed');
+  const confidence = type === 'unsure' ? 0.4 : (condition === 'unsure' ? 0.65 : 0.88);
+  const dropoffFilter = damaged === true || type === 'unsure' ? 'none'
+    : {battery:'batteries', ewaste:'ewaste', hazardous:'hazardous'}[category] || 'none';
+
+  return {
+    ok: true,
+    item: suggestion.description.slice(0,180),
+    category,
+    batteryType,
+    markings,
+    damaged,
+    damageNotes: damaged === true ? (evidence || condition) : '',
+    confidence,
+    instructions: instructionsFor(category, batteryType, damaged),
+    dropoffFilter,
+    condition: conditionLabel,
+    conditionEvidence: condition === 'unsure' ? '' : evidence,
+    type,
+    description: suggestion.description.slice(0,180),
+  };
 }
 
 async function plan(request) {

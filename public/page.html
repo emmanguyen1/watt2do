@@ -1,151 +1,1483 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Find safer battery and electronics recycling options around Hillsborough County.">
-  <title>Watt2Do | Find a recycling drop-off</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
-  <script>
-    (() => {
-      const key = 'watt2do.theme';
-      const system = matchMedia('(prefers-color-scheme: dark)');
-      let choice = 'system';
-      try {
-        const saved = localStorage.getItem(key);
-        if (saved === 'light' || saved === 'dark') choice = saved;
-      } catch {}
-      const apply = () => {
-        document.documentElement.dataset.theme = choice === 'system'
-          ? (system.matches ? 'dark' : 'light') : choice;
-      };
-      apply();
-      system.addEventListener('change',apply);
-      document.addEventListener('DOMContentLoaded',() => {
-        const control = document.getElementById('theme-choice');
-        control.value = choice;
-        control.addEventListener('change',() => {
-          choice = control.value;
-          try { localStorage.setItem(key,choice); } catch {}
-          apply();
-        });
-      });
-    })();
-  </script>
-  <link rel="stylesheet" href="/screen.css">
-  <script defer src="/static/map.js"></script>
-  <script type="module" src="/screen.mjs"></script>
-  <script type="module" src="/account.mjs"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Watt2Do — Watt's Next? Watt2Do.</title>
+<meta name="description" content="AI battery identification, safety damage detection, and drop-off locator.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="/screen.css">
+<script defer src="/static/map.js"></script>
 </head>
 <body>
-  <header class="top">
-    <a class="wordmark" href="/"><svg width="32" height="18" viewBox="0 0 64 36" fill="none" aria-hidden="true"><rect x="2" y="2" width="54" height="32" rx="8" stroke="currentColor" stroke-width="4"/><rect x="59" y="12" width="5" height="12" rx="2" fill="currentColor"/><polygon points="33,6 21,20 29,20 25,30 38,15 30,15" fill="currentColor"/></svg><span>Watt<b>2</b>Do</span></a>
-    <nav class="site-nav" aria-label="Main">
-      <a href="#scan">Scan</a>
-      <a href="#scan-history">History</a>
-      <a href="#identify">Drop-offs</a>
-      <a href="#guides">Official guides</a>
-    </nav>
-    <div class="header-settings">
-      <select id="theme-choice" aria-label="Color theme">
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-      <button class="secondary" type="button" id="account-button">Sign in</button>
+<header class="hd">
+  <a class="lg" href="#home" id="logo"></a>
+  <nav class="desk-nav" id="desk-nav" aria-label="Desktop Navigation">
+    <button data-a="go" data-v="home" class="nav-link">Home</button>
+    <button data-a="go" data-v="scan" class="nav-link">Scan</button>
+    <button data-a="go" data-v="find" class="nav-link">Find Drop-offs</button>
+    <button data-a="go" data-v="impact" class="nav-link">Impact</button>
+    <button data-a="fab" class="nav-link nav-watty">Ask Watty</button>
+  </nav>
+  <div class="row" style="gap:8px">
+    <button class="ib" data-a="theme" id="thb" aria-label="Switch between light and dark mode"></button>
+    <button class="ib" data-a="go" data-v="profile" id="prb" aria-label="User profile"></button>
+  </div>
+</header>
+<main class="w" id="app"></main>
+<nav class="tb" id="nav" aria-label="Main" hidden></nav>
+<button class="fab" data-a="fab" aria-label="Chat with Watty" id="fab"></button>
+<section class="chat" id="chat" role="dialog" aria-label="Chat with Watty" hidden>
+  <div class="row" style="padding:12px;border-bottom:1px solid var(--bd)">
+    <div style="width:44px;height:44px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center" id="cav"></div>
+    <div style="flex:1">
+      <b>Watty</b>
+      <div class="m sm">Battery and recycling helper &bull; Gemini</div>
     </div>
-  </header>
-  <dialog id="account-dialog" class="surface" aria-labelledby="account-title">
-    <h2 id="account-title">Continue to Watt2Do</h2>
-    <p>Scan items and find drop-offs with or without an account.</p>
-    <div id="google-sign-in" hidden></div>
-    <p id="account-message" role="status"></p>
-    <button class="secondary" type="button" id="account-guest">Continue as guest</button>
-  </dialog>
-  <main class="shell">
-    <section class="hero" aria-labelledby="home-title">
-      <p class="region">Hillsborough County, Florida</p>
-      <h1 id="home-title">Where does this go?</h1>
-      <p>Identify a battery or electronic device, check how to handle it, and find a nearby drop-off.</p>
-      <div class="home-cards">
-        <a class="button primary home-card" href="#scan">
-          <span class="card-icon" aria-hidden="true">&#9673;</span>
-          <span>Scan an item<small>Use your camera or upload a photo</small></span>
-        </a>
-        <a class="button secondary home-card" href="#identify">
-          <span class="card-icon" aria-hidden="true">&#128205;</span>
-          <span>Find drop-offs<small>Choose an item and its condition</small></span>
-        </a>
+    <button class="ib" data-a="fab" aria-label="Close chat">&#10005;</button>
+  </div>
+  <div id="ms" aria-live="polite"></div>
+  <div class="sw" style="margin:0;padding:0 12px 8px">
+    <button class="ch sm" data-a="q" data-q="Where do I take a swollen phone battery?">Swollen battery</button>
+    <button class="ch sm" data-a="q" data-q="Where do I take a dead battery?">Where to drop off?</button>
+    <button class="ch sm" data-a="q" data-q="Is it safe to store lithium batteries?">Is it safe to store?</button>
+  </div>
+  <form id="cf" class="row" style="padding:0 12px 12px">
+    <input class="in" id="ci" placeholder="Ask Watty…" aria-label="Message Watty">
+    <button class="cta" style="padding:0 16px;border-radius:50%;width:48px;height:48px;min-height:48px;flex:none" aria-label="Send">&rarr;</button>
+  </form>
+  <div class="m sm" style="padding:0 12px 10px;text-align:center">Powered by Google Gemini &bull; Real-time safety advice</div>
+</section>
+<input type="file" id="fi" accept="image/*" capture="environment" hidden>
+<input type="file" id="fi-file" accept="image/jpeg,image/png,image/webp" hidden>
+
+<footer class="w" style="padding-top:24px;padding-bottom:60px;border-top:1px solid var(--bd);margin-top:40px;text-align:center">
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:18px;margin-bottom:12px">
+    <span style="color:var(--ol)">⚡</span> Watt2Do &bull; Hillsborough County, FL
+  </div>
+  <p class="m sm" style="max-width:560px;margin:0 auto 16px">
+    Dedicated to protecting waste collection crews and municipal recycling facilities from lithium battery fires.
+  </p>
+  <div class="sw" style="justify-content:center;gap:12px;font-size:13px">
+    <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">County Battery Guide</a>
+    <span class="m">&bull;</span>
+    <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">County Electronics Guide</a>
+    <span class="m">&bull;</span>
+    <a href="https://www.epa.gov/recycle/used-lithium-ion-batteries" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">EPA Safety Guide</a>
+    <span class="m">&bull;</span>
+    <a href="https://locator.batterynetwork.org/" target="_blank" rel="noopener noreferrer" style="color:var(--tx)">The Battery Network</a>
+  </div>
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const ST = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+let S = { user: null, acc: [], count: 7, hist: [], saved: [], theme: 'auto' };
+let M = {
+  tab: 'create',
+  cur: null,
+  n: 0,
+  load: false,
+  err: '',
+  img: '',
+  chat: [{ b: 1, t: 'Hi, I’m Watty. Ask me about batteries, safety, or where to take them.' }],
+  F: { f: 'all', open: false, u: null, sel: null, msg: '' }
+};
+
+try { Object.assign(S, JSON.parse(localStorage.getItem('w2d') || '{}')); } catch(e) {}
+const sv = () => { try { localStorage.setItem('w2d', JSON.stringify(S)); } catch(e) {} };
+
+const MS = z => `<svg width="${z}" height="${z}" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="15" y="2" width="10" height="5" rx="2" fill="#0E1410"/><rect x="7" y="6" width="26" height="32" rx="9" fill="#0E1410"/><circle cx="15.5" cy="20" r="3" fill="#C6F432"/><circle cx="24.5" cy="20" r="3" fill="#C6F432"/><path d="M14 27Q20 33 26 27" stroke="#C6F432" stroke-width="2.2" stroke-linecap="round"/></svg>`;
+const BAT = w => `<svg width="${w}" height="${w*.56}" viewBox="0 0 64 36" fill="none" aria-hidden="true"><rect x="2" y="2" width="54" height="32" rx="8" stroke="var(--ol)" stroke-width="4"/><rect x="59" y="12" width="5" height="12" rx="2" fill="var(--ol)"/><polygon points="33,6 21,20 29,20 25,30 38,15 30,15" fill="var(--ol)"/></svg>`;
+const IC = {
+  cam: `<svg width="44" height="44" viewBox="0 0 24 24" ${ST}><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`,
+  pin: `<svg width="44" height="44" viewBox="0 0 24 24" ${ST}><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
+  gps: `<svg width="22" height="22" viewBox="0 0 24 24" ${ST}><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>`,
+  home: `<svg width="20" height="20" viewBox="0 0 24 24" ${ST}><path d="M4 11l8-7 8 7v9H4z"/></svg>`,
+  bolt: `<svg width="20" height="20" viewBox="0 0 24 24" ${ST}><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg>`,
+  usr: `<svg width="20" height="20" viewBox="0 0 24 24" ${ST}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>`,
+  sun: `<svg width="22" height="22" viewBox="0 0 24 24" ${ST}><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>`,
+  moon: `<svg width="22" height="22" viewBox="0 0 24 24" ${ST}><path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z"/></svg>`,
+  star: `<svg width="20" height="20" viewBox="0 0 24 24" ${ST}><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.3l1.1-6.2L3 9.7l6.2-.9z"/></svg>`,
+  chev: `<svg width="18" height="18" viewBox="0 0 24 24" ${ST}><path d="M9 18l6-6-6-6"/></svg>`
+};
+
+const R = [
+  { item: 'AA battery', cat: 'battery', type: 'Alkaline', dam: '', conf: .95, f: 'batteries', st: ['Tape the terminals if you are storing several.', 'Keep it out of household trash and curbside recycling.', 'Take it to a battery drop-off point.'] },
+  { item: 'Phone battery', cat: 'battery', type: 'Lithium-ion', dam: 'Swollen: keep away from heat. Fire risk.', conf: .90, f: 'batteries', st: ['Tape over the terminals', 'Store in a non-flammable container', 'Never put it in household trash', 'Take it to a drop-off point soon'] },
+  { item: 'E-bike battery', cat: 'battery', type: 'Lithium-ion Pack', dam: '', conf: .92, f: 'batteries', st: ['Keep in a cool, dry place away from heat sources.', 'Never puncture or incinerate.', 'Transport only in approved county hazardous waste containers.'] },
+  { item: 'Coin cell (CR2032)', cat: 'battery', type: 'Lithium button', dam: '', conf: .94, f: 'batteries', st: ['Tape both sides of the coin cell.', 'Keep out of reach of children and pets.', 'Bring to household hazardous waste or retail collection.'] }
+];
+
+let D = [
+  { id: 's0', name: 'The Home Depot - Fowler', lat: 28.0551, lng: -82.4385, acc: ['batteries','hazardous'], open: true, address: '1712 E Fowler Ave, Tampa, FL 33612', hours: 'Mon-Sat 6am-10pm' },
+  { id: 's1', name: 'Best Buy - Fowler', lat: 28.0545, lng: -82.4344, acc: ['batteries','ewaste'], open: true, address: '2111 E Fowler Ave, Tampa, FL 33612', hours: 'Mon-Sat 10am-8pm' },
+  { id: 's2', name: 'Staples - Fowler', lat: 28.0548, lng: -82.4335, acc: ['batteries','ewaste'], open: true, address: '2121 E Fowler Ave, Tampa, FL 33612', hours: 'Mon-Fri 8am-8pm' },
+  { id: 's3', name: 'USF Environmental Health & Safety', lat: 28.0645, lng: -82.4135, acc: ['batteries','ewaste','hazardous'], open: true, address: '4202 E Fowler Ave, Tampa, FL 33620', hours: 'Mon-Fri 8am-5pm' },
+  { id: 's4', name: 'Hillsborough County Northwest Solid Waste', lat: 28.0463, lng: -82.5732, acc: ['batteries','ewaste','hazardous'], open: true, address: '8001 W Linebaugh Ave, Tampa, FL 33625', hours: 'Mon-Sat 7:30am-5pm' }
+];
+
+const hv = (a, b, c, d) => {
+  const r = Math.PI / 180, x = (c - a) * r, y = (d - b) * r;
+  const h = Math.sin(x / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(y / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+};
+
+const eff = () => S.theme !== 'auto' ? S.theme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+function theme() {
+  const r = document.documentElement;
+  S.theme === 'auto' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', S.theme);
+  $('#thb').innerHTML = eff() === 'dark' ? IC.sun : IC.moon;
+}
+
+const V = {
+  welcome() {
+    const c = M.tab === 'create';
+    return `
+    <div class="g" style="align-items:center;padding-top:20px">
+      <div>
+        <h1>Join Watt2Do</h1>
+        <p class="m">Save your scans and track your impact. Learn how to safely discard electronics and prevent hazardous landfill fires.</p>
       </div>
-    </section>
-    <section id="scan" class="surface">
-      <h2>Scan an item</h2>
-      <p>Hold one item in view with its label facing the camera.</p>
-      <p class="note">Scanning sends up to three snapshots to Google Gemini. Keep personal information out of the frame.</p>
-      <div class="actions" id="scan-controls" hidden>
-        <button id="start" class="primary" type="button">Start live scan</button>
-        <button id="stop" class="secondary" type="button" hidden>Stop camera</button>
-        <label class="button secondary upload">Upload photo<input id="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
-      </div>
-      <div id="camera-box" hidden><video id="camera" autoplay muted playsinline aria-label="Live camera preview"></video></div>
-      <p id="scan-message" role="status"></p>
-      <div id="recognition" hidden><img id="snapshot" alt="Scanned item"><p id="recognition-text"></p></div>
-    </section>
-    <section id="scan-history" class="surface" aria-labelledby="scan-history-title">
-      <div class="history-heading">
-        <h2 id="scan-history-title">Recent scans</h2>
-        <button id="scan-history-clear" class="secondary" type="button" hidden>Clear history</button>
-      </div>
-      <p class="note">Saved in this browser. Photos are excluded.</p>
-      <p id="scan-history-empty" role="status">No scans yet.</p>
-      <ul id="scan-history-list" aria-label="Recent scan results"></ul>
-    </section>
-    <section id="identify" class="surface">
-      <h2>Choose the item and condition</h2>
-      <form id="item-form">
-        <div class="fields">
-          <label>Item type<select id="item" required><option value="">Choose a type</option></select></label>
-          <label>Condition<select id="condition" required><option value="">Choose a condition</option></select></label>
+      <div class="cd">
+        <div class="tabs">
+          <button data-a="tab" data-v="create" aria-pressed="${c}">Create account</button>
+          <button data-a="tab" data-v="in" aria-pressed="${!c}">Sign in</button>
         </div>
-        <div id="condition-review" hidden>
-          <p id="condition-suggestion" class="note" role="status"></p>
-          <label><input id="condition-checked" type="checkbox"> I checked the item and confirmed the condition above.</label>
+        <form id="af">
+          ${c ? '<label>Name<input class="in" name="n" required placeholder="Your name"></label>' : ''}
+          <label>Email<input class="in" name="e" type="email" required placeholder="you@example.com"></label>
+          <label>Password<input class="in" name="p" type="password" required minlength="8" placeholder="At least 8 characters"></label>
+          ${M.err ? `<p class="bn" role="alert">${M.err}</p>` : ''}
+          <button class="cta" style="width:100%">${c ? 'Create account' : 'Sign in'}</button>
+        </form>
+        <div style="text-align:center;margin:12px 0;color:var(--mu);font-size:14px">or</div>
+        <div id="g-signin-slot" style="min-height:44px;display:flex;justify-content:center;margin-bottom:10px">
+          <button type="button" class="ch row" style="width:100%;justify-content:center" data-a="guest">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+            Continue with Google
+          </button>
         </div>
-        <button id="submit-item" class="primary" disabled>Show guidance and drop-offs</button>
-      </form>
-      <p id="plan-message" role="status"></p>
-      <article id="advice" hidden aria-live="polite"></article>
-    </section>
-    <section id="results" class="surface" hidden>
-      <h2>Find a drop-off</h2>
-      <form id="area-form" class="search" hidden>
-        <label>City or ZIP<input id="area" placeholder="Tampa or 33620" autocomplete="postal-code"></label>
-        <button class="primary">Search</button>
-        <button id="near-me" type="button" class="secondary">Use my location</button>
-      </form>
-      <p id="map-message" role="status"></p>
-      <div id="map" aria-label="Drop-off locations map" hidden></div>
-      <ul id="place-list"></ul>
-      <a id="locator" href="https://locator.batterynetwork.org/" target="_blank" rel="noopener" hidden>Find more locations with The Battery Network</a>
-    </section>
-  </main>
-  <footer id="guides" class="shell">
-    <strong>Watt2Do</strong>
-    <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-batteries">County battery guide</a>
-    <a href="https://hcfl.gov/residents/property-owners-and-renters/trash-and-recycling/discarding-paint-and-electronics">County electronics guide</a>
-    <a href="https://www.epa.gov/recycle/used-lithium-ion-batteries">EPA battery guide</a>
-  </footer>
-  <script type="module" src="/watty.mjs"></script>
-  <button type="button" class="primary" id="watty-launcher" aria-controls="watty-panel" aria-expanded="false"><svg width="28" height="28" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="15" y="2" width="10" height="5" rx="2" fill="#0E1410"/><rect x="7" y="6" width="26" height="32" rx="9" fill="#0E1410"/><circle cx="15.5" cy="20" r="3" fill="#C6F432"/><circle cx="24.5" cy="20" r="3" fill="#C6F432"/><path d="M14 27Q20 33 26 27" stroke="#C6F432" stroke-width="2.2" stroke-linecap="round"/></svg>Ask Watty</button>
-  <section id="watty-panel" aria-labelledby="watty-title" hidden>
-    <header><h2 id="watty-title"><svg width="28" height="28" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="15" y="2" width="10" height="5" rx="2" fill="#0E1410"/><rect x="7" y="6" width="26" height="32" rx="9" fill="#0E1410"/><circle cx="15.5" cy="20" r="3" fill="#C6F432"/><circle cx="24.5" cy="20" r="3" fill="#C6F432"/><path d="M14 27Q20 33 26 27" stroke="#C6F432" stroke-width="2.2" stroke-linecap="round"/></svg>Watty</h2><button type="button" class="secondary" id="watty-close" aria-label="Close Watty">&#215;</button></header>
-    <div id="watty-log" role="log" aria-label="Chat messages">
-      <p>Ask how to handle a battery or where to recycle an electronic item.</p>
+        <button class="ch" style="width:100%;border:0;text-decoration:underline" data-a="guest">Continue as guest</button>
+      </div>
+    </div>`;
+  },
+
+  home() {
+    const h = S.hist.slice(0, 6);
+    return `
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+      <div>
+        <h1>Hi, ${esc(S.user ? S.user.name : 'there')}</h1>
+        <p class="m">What do you want to do?</p>
+      </div>
+      <button class="ch sm row" data-a="go" data-v="impact" style="margin-bottom:8px">
+        <span style="color:var(--ol)">${IC.bolt}</span>
+        <span><b>${S.count}</b> items saved</span>
+      </button>
     </div>
-    <form id="watty-form">
-      <input id="watty-input" aria-label="Your question" maxlength="500" placeholder="Where can I recycle AA batteries?" required>
-      <button type="submit" class="primary" id="watty-send">Send</button>
+    <div class="home-cards">
+      <button class="opt" data-a="go" data-v="find">
+        <span style="color:var(--ol);display:flex;align-items:center">${IC.pin}</span>
+        <span><b>Find drop-off points</b><span class="m sm">Locate verified recycling facilities near you.</span></span>
+      </button>
+      <button class="opt p" data-a="go" data-v="scan">
+        <span style="color:var(--ol);display:flex;align-items:center">${IC.cam}</span>
+        <span><b style="color:var(--ol)">Scan an item</b><span class="m sm">Identify battery chemistry and safety guidance.</span></span>
+      </button>
+    </div>
+    <div style="margin-top:36px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:20px;margin:0">Recent scans</h2>
+        ${h.length ? `<button class="ch sm" data-a="go" data-v="profile">View all</button>` : ''}
+      </div>
+      ${h.length ? `
+        <div class="recent-grid">
+          ${h.map(x => `
+            <div class="recent-item" data-a="scanitem" data-item="${esc(x.item)}">
+              <div>
+                <b>${esc(x.item)}</b>
+                <div class="m sm">${esc(x.type || 'Battery')} &bull; ${esc(x.d)}</div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--mu)"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div class="cd" style="text-align:center;padding:28px">
+          <p class="m" style="margin-bottom:14px">No scans yet. Try scanning your first dead battery.</p>
+          <button class="cta" data-a="go" data-v="scan">Scan an item</button>
+        </div>
+      `}
+    </div>`;
+  },
+
+  scan() {
+    return `
+    <div class="scan-desktop-layout">
+      <div style="text-align:center;padding:16px 0">
+        <h1>Got a dead battery?</h1>
+        <p class="m" style="max-width:440px;margin:0 auto 18px">
+          Hold your battery label facing the camera. Our Gemini AI automatically detects chemistry, hazards, and county drop-offs in real time.
+        </p>
+
+        <!-- Expanded Camera Detection HUD Viewfinder -->
+        <div style="position:relative;width:100%;max-width:560px;min-height:360px;height:380px;margin:0 auto 16px;border-radius:24px;border:3px solid var(--ol);display:flex;align-items:center;justify-content:center;background:#050806;box-shadow:0 0 35px rgba(198,244,50,0.2);overflow:hidden">
+          <video id="camera" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.05) brightness(1.02);image-rendering:-webkit-optimize-contrast"></video>
+          <div id="cam-placeholder" style="color:var(--ol);display:none;flex-direction:column;align-items:center;gap:8px">
+            ${IC.cam}
+            <span class="sm" style="font-weight:700">Starting 1080p HD camera…</span>
+          </div>
+
+          <!-- Futuristic HUD Corner Targeting Brackets -->
+          <div style="position:absolute;top:16px;left:16px;width:30px;height:30px;border-top:3px solid var(--ol);border-left:3px solid var(--ol);border-top-left-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;top:16px;right:16px;width:30px;height:30px;border-top:3px solid var(--ol);border-right:3px solid var(--ol);border-top-right-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;bottom:16px;left:16px;width:30px;height:30px;border-bottom:3px solid var(--ol);border-left:3px solid var(--ol);border-bottom-left-radius:8px;pointer-events:none"></div>
+          <div style="position:absolute;bottom:16px;right:16px;width:30px;height:30px;border-bottom:3px solid var(--ol);border-right:3px solid var(--ol);border-bottom-right-radius:8px;pointer-events:none"></div>
+
+          <!-- Macro Focus Box & Reticle -->
+          <div style="position:absolute;width:160px;height:120px;border:2px dashed rgba(198,244,50,0.55);border-radius:18px;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--ol)"></div>
+            <span style="font-size:10px;font-weight:700;color:var(--ol);letter-spacing:1px;text-transform:uppercase">Focus Area</span>
+          </div>
+
+          <!-- Animated Laser Sweep -->
+          <div class="scan-sweep" style="position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(198,244,50,0.22) 50%,transparent);animation:sweep 2.4s ease-in-out infinite;pointer-events:none"></div>
+
+          <!-- Top HUD Badges & Controls -->
+          <div style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;z-index:2">
+            <span style="background:rgba(14,20,16,0.85);backdrop-filter:blur(6px);border:1px solid rgba(198,244,50,0.4);border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--ol)">1080p HD</span>
+            <button id="btn-zoom-toggle" data-a="zoom-toggle" class="ch sm" style="padding:3px 10px;font-size:11px;font-weight:700;border-radius:12px;background:rgba(14,20,16,0.85);color:#fff;border:1px solid rgba(255,255,255,0.25)">1x Wide</button>
+          </div>
+
+          <!-- Top Right Camera Controls (Torch & Flip) -->
+          <div style="position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:6px;z-index:2">
+            <button id="btn-flip-cam" data-a="flip-cam" class="ib sm" style="background:rgba(14,20,16,0.85);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.25);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#fff" title="Flip Camera">🔄</button>
+            <button id="btn-torch-toggle" data-a="torch-toggle" class="ib sm" style="background:rgba(14,20,16,0.85);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.25);border-radius:50%;width:34px;height:34px;display:none;align-items:center;justify-content:center;color:#fff" title="Toggle Flash">⚡</button>
+          </div>
+
+          <!-- Floating Live Detection Badge -->
+          <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(14,20,16,0.85);backdrop-filter:blur(8px);border-radius:20px;border:1px solid rgba(198,244,50,0.4);font-size:13px;font-weight:600;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:2">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--ol);animation:pulse 1.2s infinite"></span>
+            <span id="cam-badge-text">Autofocus Macro Active</span>
+          </div>
+
+          <!-- Bottom HUD Actions & Message Overlay -->
+          <div style="position:absolute;bottom:14px;left:14px;right:14px;display:flex;flex-direction:column;gap:8px;z-index:2">
+            <div id="cam-status-msg" style="padding:8px 14px;background:rgba(14,20,16,0.88);backdrop-filter:blur(10px);border-radius:12px;font-size:13px;color:#fff;text-align:center;border:1px solid rgba(255,255,255,0.1)">
+              Hold battery steady in focus box — auto-reading chemistry…
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:row;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px">
+          <button class="cta sm row" data-a="instant-scan" style="padding:9px 20px;background:var(--ac);color:var(--ot);font-weight:800;border:0;box-shadow:0 0 16px rgba(198,244,50,0.3)">
+            ⚡ Scan Now
+          </button>
+          <button class="cta sm row" data-a="phone-cam" style="padding:9px 18px">
+            📸 Phone camera app
+          </button>
+          <button class="ch sm row" data-a="upload" style="padding:9px 18px">
+            📁 Upload photo file
+          </button>
+          <button id="btn-cam-toggle" class="ch sm" data-a="cam-toggle">
+            Pause camera
+          </button>
+          <button class="ch sm" data-a="go" data-v="manual" style="border:0;text-decoration:underline">
+            Select item manually
+          </button>
+        </div>
+      </div>
+
+      <div class="cd" style="padding:24px">
+        <h2 style="font-size:20px;margin-top:0">How Watt2Do Scanner Works</h2>
+        <ol class="st" style="margin-top:16px">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <b>Position battery label</b>
+              <div class="m sm">Ensure markings, chemistry (Li-ion, Alkaline), or voltage are visible.</div>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <b>Safety & Hazard Assessment</b>
+              <div class="m sm">Detects thermal risk, physical puncture, swelling, or active leakage.</div>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <b>Local Drop-off Routing</b>
+              <div class="m sm">Finds verified drop-off facilities in Hillsborough County accepting your item.</div>
+            </div>
+          </li>
+        </ol>
+        <div style="margin-top:20px;padding:12px;border-radius:12px;background:var(--tr)" class="row">
+          <span style="color:var(--ol)">${IC.bolt}</span>
+          <span class="sm"><b>${S.count} items</b> kept out of landfill by our community</span>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  manual() {
+    return `
+    <h2>Choose item manually</h2>
+    <p class="m">Select an item and condition to view safety instructions and local drop-offs.</p>
+    <form id="mf" class="cd" style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+      <label>Item type
+        <select class="in" id="m-type" required>
+          <optgroup label="Loose batteries">
+            <option value="rechargeable" selected>Rechargeable battery or tool pack</option>
+            <option value="household">Standard household battery (AA/AAA/C/D/9V)</option>
+            <option value="primary">Disposable lithium battery</option>
+            <option value="button">Button or coin cell</option>
+            <option value="starter">Lead-acid vehicle battery</option>
+            <option value="ebike">E-bike battery</option>
+            <option value="unknownBattery">Battery type unsure</option>
+          </optgroup>
+          <optgroup label="Portable electronics">
+            <option value="phone">Phone</option>
+            <option value="tablet">Tablet</option>
+            <option value="watch">Smartwatch</option>
+            <option value="laptop">Laptop</option>
+            <option value="power">Power bank</option>
+            <option value="headphones">Headphones or earbuds</option>
+            <option value="camera">Digital camera</option>
+          </optgroup>
+          <optgroup label="Computers & Office">
+            <option value="desktop">Desktop computer</option>
+            <option value="monitor">Monitor</option>
+            <option value="peripherals">Keyboard or mouse</option>
+            <option value="router">Router</option>
+            <option value="printer">Printer</option>
+            <option value="cable">Plug-in charger or cable</option>
+          </optgroup>
+        </select>
+      </label>
+      <label>Condition
+        <select class="in" id="m-cond" required>
+          <option value="intact" selected>Intact and cool</option>
+          <option value="damaged">Damaged (cracked / crushed / dented)</option>
+          <option value="swollen">Swollen (bulging / expanded cell)</option>
+          <option value="leaking">Leaking</option>
+          <option value="hot">Hot, smoking or burning</option>
+          <option value="unsure">Condition unsure</option>
+        </select>
+      </label>
+      <label>Location (Tampa ZIP or area)
+        <input class="in" id="m-area" placeholder="Tampa, 33602, 33612, 33620..." value="${M.F.u ? 'your location' : 'Tampa'}">
+      </label>
+      <button class="cta" type="submit" style="margin-top:6px">Show guidance & drop-offs</button>
     </form>
-  </section>
+    <div style="margin-top:14px"><button class="ch" data-a="go" data-v="home">&larr; Back to home</button></div>`;
+  },
+
+  load() {
+    return `
+    <div style="text-align:center;padding-top:40px">
+      <h2>Analyzing your item…</h2>
+      <p class="m">Checking item category, battery chemistry, and visible damage cues with Gemini Vision.</p>
+      ${M.img ? `<img src="${M.img}" alt="Your photo" style="max-width:220px;max-height:180px;border-radius:14px;margin:20px auto;display:block" onerror="this.remove()">` : ''}
+      <div class="bat" style="margin-top:28px"><i></i></div>
+    </div>`;
+  },
+
+  result() {
+    const r = M.cur;
+    if (!r) return V.home();
+    if (r.conf < .6) {
+      return `
+      <div class="cd" style="text-align:center;margin-top:30px">
+        <h2>Not sure, try a closer photo</h2>
+        <p class="m">The photo was unclear, so we won’t guess. Try holding the label steady.</p>
+        <div class="sw" style="justify-content:center;margin-top:20px">
+          <button class="cta" data-a="scan">Retake photo</button>
+          <button class="ch" data-a="go" data-v="home">Back</button>
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="row" style="margin:14px 0 16px">
+      <svg width="100" height="100" viewBox="0 0 100 100" role="img" aria-label="${Math.round(r.conf * 100)} percent match">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--tr)" stroke-width="10"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ol)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${r.conf * 251} 251" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" text-anchor="middle" font-size="22" font-weight="700" fill="var(--tx)">${Math.round(r.conf * 100)}%</text>
+      </svg>
+      <div>
+        <h2 style="margin:0">${esc(r.item)}</h2>
+        ${r.type ? `<span class="bd" style="margin-top:6px">${esc(r.type)}</span>` : ''}
+        ${r.markings ? `<div class="m sm" style="margin-top:6px"><b>Visible label:</b> ${esc(r.markings)}</div>` : ''}
+        ${r.conditionEvidence ? `<div class="m sm" style="margin-top:2px"><b>Condition assessment:</b> ${esc(r.conditionEvidence)}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Prominent Condition Pop-Out Card -->
+    ${!r.isDamaged ? `
+      <div class="condition-popout" style="margin:14px 0 20px;padding:16px 18px;border-radius:18px;background:rgba(198,244,50,0.14);border:2px solid var(--ol);box-shadow:0 8px 24px rgba(198,244,50,0.2);display:flex;align-items:center;gap:14px;animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275)">
+        <div style="width:42px;height:42px;border-radius:50%;background:var(--ac);color:#0E1410;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 12px rgba(198,244,50,0.4)">✓</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ol)">Condition Status</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ac);color:#0E1410">SAFE & VERIFIED</span>
+          </div>
+          <div style="font-size:20px;font-weight:800;color:var(--tx);margin-top:2px;letter-spacing:-0.2px">Intact and cool</div>
+          <div class="m sm" style="margin-top:2px">No swelling, heat, punctures, or chemical leakage detected. Safe for standard battery drop-off.</div>
+        </div>
+      </div>
+    ` : `
+      <div class="condition-popout" role="alert" style="margin:14px 0 20px;padding:16px 18px;border-radius:18px;background:var(--rb);border:2px solid var(--rd);box-shadow:0 8px 24px rgba(255,90,79,0.24);display:flex;align-items:center;gap:14px;animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275)">
+        <div style="width:42px;height:42px;border-radius:50%;background:var(--rd);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 12px rgba(255,90,79,0.4)">⚠️</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--rd)">Hazard Alert</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--rd);color:#fff">ACTION REQUIRED</span>
+          </div>
+          <div style="font-size:20px;font-weight:800;color:var(--rt);margin-top:2px">${esc(r.dam || 'Damaged / Hazardous Condition')}</div>
+          <div class="m sm" style="margin-top:2px">Do not place in regular trash or standard drop-off bins. Follow hazardous handling steps below.</div>
+        </div>
+      </div>
+    `}
+
+    <h2 style="font-size:20px;margin:20px 0 12px">What to do</h2>
+    <ol class="st">
+      ${r.st.map((s, i) => `<li><span class="n">${i + 1}</span><span>${esc(s)}</span></li>`).join('')}
+    </ol>
+
+    ${r.phone ? `
+      <div style="margin:16px 0">
+        <a href="tel:${esc(r.phone)}" class="cta row" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--rd);color:#fff;text-decoration:none;width:100%">
+          📞 Call Hillsborough County: ${esc(r.phone)}
+        </a>
+      </div>
+    ` : ''}
+
+    ${r.source ? `
+      <p class="m sm" style="margin-top:10px">
+        <a href="${esc(r.source)}" target="_blank" rel="noopener noreferrer" style="color:var(--ol);text-decoration:underline">
+          Read official county guidance &rarr;
+        </a>
+      </p>
+    ` : ''}
+
+    <div style="margin-top:24px">
+      ${r.f !== 'none' ? `<button class="cta" style="width:100%" data-a="find" data-v="${r.f}">Find drop-off near me</button>` : '<p class="m">This can safely go in the regular municipal bin.</p>'}
+      <button class="ch" style="width:100%;margin-top:10px" data-a="go" data-v="scan">Scan another item</button>
+    </div>`;
+  },
+
+  find() {
+    const F = M.F;
+    const c = F.u || { lat: 28.06, lng: -82.41 };
+    let L = D.filter(d => (F.f === 'all' || d.acc.includes(F.f)) && (!F.open || d.open))
+             .map(d => ({ ...d, km: hv(c.lat, c.lng, d.lat, d.lng) }))
+             .sort((a, b) => a.km - b.km)
+             .slice(0, 10);
+
+    const mx = Math.max(1, ...L.map(d => d.km)), k = 110 / mx;
+    const P = d => [200 + (d.lng - c.lng) * Math.cos(c.lat * Math.PI / 180) * 111 * k, 130 - (d.lat - c.lat) * 111 * k];
+    M.lastDropoffs = L;
+    const selItem = L.find(d => d.id === F.sel);
+    const pins = L.map((d, i) => {
+      const [x, y] = P(d), s = F.sel === d.id;
+      return `<g data-a="sel" data-v="${d.id}" style="cursor:pointer" class="svg-pin" id="svg-pin-${i}">
+        <circle cx="${x}" cy="${y}" r="${s ? 18 : 13}" fill="${s ? '#ffffff' : 'var(--ac)'}" stroke="${s ? 'var(--ac)' : 'var(--ol)'}" stroke-width="${s ? 3 : 2}"/>
+        <text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="700" fill="#0E1410">${i + 1}</text>
+      </g>`;
+    }).join('');
+
+    setTimeout(() => {
+      if (window.Watt2DoMap && $('#map')) {
+        const origin = F.u ? { lat: F.u.lat, lng: F.u.lng } : null;
+        window.Watt2DoMap.show('map', origin, L).then(() => {
+          if (F.sel) {
+            const selIdx = L.findIndex(d => d.id === F.sel);
+            if (selIdx >= 0) window.Watt2DoMap.selectDropoff(selIdx);
+          }
+        }).catch(() => {});
+      }
+    }, 50);
+
+    return `
+    <div style="margin-bottom:16px">
+      <h2>Nearby drop-offs</h2>
+      <p class="m">Verified disposal and recycling sites across Hillsborough County.</p>
+    </div>
+
+    <div class="map-page-layout">
+      <div>
+        <div class="cd row" style="margin-bottom:12px">
+          ${IC.gps}
+          <span style="flex:1">${F.u ? 'GPS on: your location' : 'Showing Tampa (USF area)'}</span>
+          <button class="ch sm" data-a="locate">${F.u ? 'Update' : 'Use my location'}</button>
+        </div>
+        ${F.msg ? `<p class="m sm" role="status" style="margin-bottom:10px">${F.msg}</p>` : ''}
+
+        <div class="sw" style="margin:0 0 14px">
+          <button class="ch" data-a="open" aria-pressed="${F.open}">Open now</button>
+          ${[['all', 'All'], ['batteries', 'Batteries'], ['ewaste', 'E-waste'], ['hazardous', 'Hazardous']].map(a => `
+            <button class="ch" data-a="flt" data-v="${a[0]}" aria-pressed="${F.f === a[0]}">${a[1]}</button>
+          `).join('')}
+        </div>
+
+        <div>
+          ${L.length ? L.map((d, i) => `
+            <div class="cd" style="margin-bottom:10px;${F.sel === d.id ? 'border-color:var(--ol)' : ''}">
+              <div class="row">
+                <span class="n">${i + 1}</span>
+                <button data-a="sel" data-v="${d.id}" style="flex:1;text-align:left;background:none;border:0;padding:4px 0;cursor:pointer">
+                  <b>${esc(d.name)}</b>
+                  <div class="m sm">${d.km.toFixed(1)} km &bull; ${d.open ? 'Open now' : 'Closed'}${d.hours ? ' &bull; ' + esc(d.hours) : ''}</div>
+                  ${d.address ? `<div class="m sm" style="margin-top:2px">${esc(d.address)}</div>` : ''}
+                </button>
+                <button class="ib" data-a="save" data-v="${d.id}" aria-pressed="${S.saved.includes(d.id)}" aria-label="Save ${esc(d.name)}" style="${S.saved.includes(d.id) ? 'background:var(--ac);color:var(--ot)' : ''}">
+                  ${IC.star}
+                </button>
+              </div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--tr);display:flex;gap:8px;flex-wrap:wrap">
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.address || d.name)}" target="_blank" rel="noopener noreferrer" class="ch sm row" style="text-decoration:none;padding:4px 12px">
+                  🧭 Directions
+                </a>
+                ${d.phone ? `<a href="tel:${esc(d.phone)}" class="ch sm row" style="text-decoration:none;padding:4px 12px">📞 Call</a>` : ''}
+                ${d.callFirst ? `<span class="sm" style="color:var(--rd);display:flex;align-items:center">*Call before visiting</span>` : ''}
+              </div>
+            </div>
+          `).join('') : '<p class="m">No drop-offs match this filter. Try another category.</p>'}
+        </div>
+      </div>
+
+      <div class="map-sticky">
+        <div class="mp">
+          <div id="map" style="width:100%;height:320px;border-radius:18px;background:var(--cd);border:1px solid var(--bd);">
+            <svg viewBox="0 0 400 260" role="img" aria-label="Drop-off locations map">
+              <rect width="400" height="260" rx="18" fill="var(--cd)" stroke="var(--bd)"/>
+              <path d="M0 70H400M0 190H400M110 0V260M290 0V260" stroke="var(--tr)" stroke-width="2"/>
+              <path d="M0 220L150 120L400 190" stroke="var(--bd)" stroke-width="6" fill="none"/>
+              ${pins}
+              <circle class="pl" cx="200" cy="130" r="14" fill="#3B82F6"/>
+              <circle cx="200" cy="130" r="8" fill="#3B82F6" stroke="#fff" stroke-width="3"/>
+            </svg>
+          </div>
+          <button class="ib lb" data-a="locate" aria-label="Use my location">${IC.gps}</button>
+        </div>
+        ${selItem ? `
+          <div class="cd" style="margin-top:12px;border:2px solid var(--ac);background:var(--cd);padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+            <div class="row" style="align-items:flex-start">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span class="n" style="background:var(--ac);color:var(--ot);width:22px;height:22px;font-size:12px">${L.findIndex(d => d.id === selItem.id) + 1}</span>
+                  <b style="font-size:16px">${esc(selItem.name)}</b>
+                </div>
+                <div class="m sm" style="margin-top:4px">${selItem.km.toFixed(1)} km &bull; ${selItem.open ? '● Open now' : '● Closed'}${selItem.hours ? ' &bull; ' + esc(selItem.hours) : ''}</div>
+                ${selItem.address ? `<div class="m sm" style="margin-top:2px">${esc(selItem.address)}</div>` : ''}
+              </div>
+              <button class="ib sm" data-a="sel" data-v="${selItem.id}" aria-label="Deselect" style="padding:4px;font-size:16px">&times;</button>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selItem.address || selItem.name)}" target="_blank" rel="noopener noreferrer" class="cta sm row" style="flex:1;justify-content:center;text-decoration:none;padding:6px 14px">
+                🧭 Open in Google Maps
+              </a>
+              ${selItem.phone ? `<a href="tel:${esc(selItem.phone)}" class="ch sm row" style="text-decoration:none;padding:6px 14px">📞 Call</a>` : ''}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    </div>`;
+  },
+
+  impact() {
+    const c = S.count;
+    const l = Math.floor(c / 5) + 1;
+    const f = c % 5;
+    const lbs = (c * 0.45).toFixed(1);
+    const co2 = (c * 1.2).toFixed(1);
+    return `
+    <div style="text-align:center;padding-top:10px">
+      <h2>Your impact</h2>
+      <div class="big">${c}</div>
+      <p style="margin-top:-6px;font-size:18px">items kept out of landfill</p>
+      
+      <div class="seg" role="img" aria-label="Level progress">
+        ${[0, 1, 2, 3, 4].map(i => `<i class="${i < f ? 'on' : ''}"></i>`).join('')}
+      </div>
+      <p class="m">Level ${l} &bull; ${5 - f} more scans to Level ${l + 1}</p>
+
+      <div class="g" style="max-width:840px;margin:28px auto 0;text-align:left">
+        <div class="cd">
+          <div class="m sm">Toxic Heavy Metals Diverted</div>
+          <b style="font-size:28px;color:var(--ol)">~${lbs} lbs</b>
+          <div class="m sm" style="margin-top:4px">Lead, cadmium, nickel & cobalt securely recycled.</div>
+        </div>
+        <div class="cd">
+          <div class="m sm">Estimated Carbon Offset</div>
+          <b style="font-size:28px;color:var(--ol)">~${co2} kg CO₂</b>
+          <div class="m sm" style="margin-top:4px">Virgin mineral extraction & refining emissions saved.</div>
+        </div>
+        <div class="cd">
+          <div class="m sm">Thermal Runaway Shield</div>
+          <b style="font-size:28px;color:var(--ol)">100%</b>
+          <div class="m sm" style="margin-top:4px">Zero waste collection truck fires prevented.</div>
+        </div>
+      </div>
+
+      <div class="sw" style="justify-content:center;margin-top:24px">
+        ${[[1, 'First scan'], [5, '5 items'], [10, '10 items'], [25, '25 items']].map(b => `
+          <span class="cd sm" style="${c >= b[0] ? 'border-color:var(--ol);font-weight:700' : 'opacity:.5'}">
+            ${BAT(16)} ${b[1]}
+          </span>
+        `).join('')}
+      </div>
+
+      <div style="margin-top:32px">
+        <button class="cta" data-a="go" data-v="scan">Scan another item</button>
+      </div>
+    </div>`;
+  },
+
+  profile() {
+    const u = S.user || { name: 'Eco Hero', email: 'guest@watt2do.app', guest: 1 };
+    const t = ['auto', 'light', 'dark'];
+    return `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:92px;height:92px;border-radius:50%;border:3px solid var(--ol);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;color:var(--ol)">
+        <svg width="46" height="46" viewBox="0 0 24 24" ${ST}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <h2 style="margin:0">${esc(u.name)}</h2>
+      <p class="m">${u.guest ? 'Guest mode' : esc(u.email)}</p>
+    </div>
+
+    <div class="g">
+      <div class="cd">
+        <b style="font-size:34px;color:var(--ol)">${S.count}</b>
+        <div class="m sm">items kept out of landfill</div>
+      </div>
+      <div class="cd">
+        <b style="font-size:34px;color:var(--ol)">Lv ${Math.floor(S.count / 5) + 1}</b>
+        <div class="m sm">${5 - S.count % 5} more scans to next level</div>
+      </div>
+    </div>
+
+    <h2 style="font-size:20px;margin:24px 0 8px">Appearance</h2>
+    <div class="tabs" role="group" aria-label="Theme">
+      ${t.map(x => `<button data-a="th" data-v="${x}" aria-pressed="${S.theme === x}">${x[0].toUpperCase() + x.slice(1)}</button>`).join('')}
+    </div>
+
+    <h2 style="font-size:20px;margin:24px 0 8px">Scan history</h2>
+    ${S.hist.length ? S.hist.map(x => `
+      <div class="cd row" style="margin-bottom:8px;justify-content:space-between">
+        <div><b>${esc(x.item)}</b> <span class="m sm">&bull; ${esc(x.d)}</span></div>
+        <span style="color:var(--mu)">${IC.chev}</span>
+      </div>
+    `).join('') : '<p class="m">No scans recorded yet.</p>'}
+
+    <h2 style="font-size:20px;margin:24px 0 8px">Saved drop-off points</h2>
+    ${S.saved.length ? S.saved.map(id => `
+      <div class="cd" style="margin-bottom:8px">${esc((D.find(d => d.id === id) || {}).name || id)}</div>
+    `).join('') : '<p class="m">Tap the star on any drop-off to save it here.</p>'}
+
+    <div class="sw" style="margin-top:28px">
+      ${u.guest ? '<button class="cta" data-a="out">Create an account</button>' : '<button class="ch" data-a="out" style="color:var(--rd);border-color:var(--rd)">Sign out</button>'}
+      <button class="ch" data-a="clear">Clear my data</button>
+    </div>`;
+  }
+};
+
+const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function render() {
+  let v = location.hash.slice(1);
+  if (!v) v = S.user ? 'home' : 'welcome';
+  if (!V[v] || v === 'load') v = 'home';
+  const x = M.load ? 'load' : v;
+  const isLanding = (x === 'welcome');
+
+  const appEl = $('#app');
+  if (appEl) {
+    appEl.classList.toggle('landing', isLanding);
+    appEl.innerHTML = V[x]();
+  }
+
+  // Sync desktop navigation active pill
+  document.querySelectorAll('#desk-nav .nav-link[data-v]').forEach(btn => {
+    btn.setAttribute('aria-current', btn.dataset.v === v ? 'page' : 'false');
+  });
+
+  // Sync mobile bottom navigation bar
+  const n = $('#nav');
+  if (n) {
+    n.hidden = isLanding;
+    n.innerHTML = [
+      ['home', 'Home', IC.home],
+      ['scan', 'Scan', IC.cam.replace(/44/g, '20')],
+      ['find', 'Find', IC.pin.replace(/44/g, '20')],
+      ['impact', 'Impact', IC.bolt],
+      ['profile', 'Profile', IC.usr]
+    ].map(a => `
+      <button data-a="go" data-v="${a[0]}" ${v === a[0] ? 'aria-current="page"' : ''}>
+        ${a[2]}<span>${a[1]}</span>
+      </button>
+    `).join('');
+  }
+
+  const prb = $('#prb');
+  if (prb) {
+    prb.innerHTML = IC.usr;
+  }
+
+  theme();
+  if (x === 'scan') {
+    setTimeout(startCamera, 120);
+  } else {
+    stopCamera();
+  }
+}
+
+let cameraStream = null;
+let scanAbortController = null;
+
+let torchActive = false;
+let currentFacingMode = 'environment';
+let currentZoom = 1.0;
+
+function grabFrame(closeUp = false) {
+  const vid = $('#camera');
+  if (!vid || !cameraStream) return Promise.resolve(null);
+  const vWidth = vid.videoWidth || 1280;
+  const vHeight = vid.videoHeight || 720;
+  // If 2x zoom or closeUp: tight 48% center crop for macro focus on printed text
+  // If standard: 82% center crop to focus on target item without distortion
+  const isMacro = closeUp || currentZoom > 1.0;
+  const portion = isMacro ? 0.48 : 0.82;
+  const cropW = vWidth * portion;
+  const cropH = vHeight * portion;
+  const cropX = (vWidth - cropW) / 2;
+  const cropY = (vHeight - cropH) / 2;
+
+  const canvas = document.createElement('canvas');
+  // 1280px for macro brings out tiny text markings with high sharpness
+  const maxDim = isMacro ? 1280 : 1024;
+  const scale = Math.min(1.0, maxDim / Math.max(cropW, cropH));
+  canvas.width = Math.round(cropW * scale);
+  canvas.height = Math.round(cropH * scale);
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(vid, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.93));
+}
+
+async function toggleTorch() {
+  if (!cameraStream) return;
+  const track = cameraStream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities) return;
+  const caps = track.getCapabilities();
+  if (!caps.torch) return;
+  try {
+    torchActive = !torchActive;
+    await track.applyConstraints({ advanced: [{ torch: torchActive }] });
+    const btn = $('#btn-torch-toggle');
+    if (btn) btn.style.background = torchActive ? 'var(--ac)' : 'rgba(14,20,16,0.85)';
+    if (btn) btn.style.color = torchActive ? 'var(--ot)' : '#fff';
+  } catch(e) {}
+}
+
+async function toggleZoom() {
+  currentZoom = currentZoom === 1.0 ? 2.0 : 1.0;
+  const btn = $('#btn-zoom-toggle');
+  if (btn) {
+    btn.textContent = currentZoom === 2.0 ? '2x Macro' : '1x Wide';
+    btn.style.background = currentZoom === 2.0 ? 'var(--ac)' : 'rgba(14,20,16,0.85)';
+    btn.style.color = currentZoom === 2.0 ? 'var(--ot)' : '#fff';
+  }
+  const vid = $('#camera');
+  if (vid) {
+    vid.style.transform = currentZoom === 2.0 ? 'scale(1.22)' : 'scale(1)';
+    vid.style.transition = 'transform 0.25s ease';
+  }
+  if (!cameraStream) return;
+  const track = cameraStream.getVideoTracks()[0];
+  if (track && track.getCapabilities) {
+    const caps = track.getCapabilities();
+    if (caps.zoom) {
+      const targetZoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, currentZoom));
+      await track.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
+    }
+  }
+}
+
+async function flipCamera() {
+  currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+  await startCamera();
+}
+
+async function triggerInstantScan() {
+  const badge = $('#cam-badge-text');
+  const msg = $('#cam-status-msg');
+  if (badge) badge.textContent = 'Instant Scan…';
+  if (msg) msg.textContent = 'Reading frame with Gemini AI…';
+  const blob = await grabFrame(currentZoom > 1.0);
+  if (!blob) return;
+  try {
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'content-type': 'image/jpeg' },
+      body: blob
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.category && data.category !== 'unknown') {
+        stopCamera();
+        await handleScanSuccess(blob, data);
+        return;
+      }
+    }
+  } catch(e) {}
+  if (msg) msg.textContent = 'Could not get a clear reading. Move closer or turn on flash ⚡';
+  if (badge) badge.textContent = 'Autofocus Macro Active';
+}
+
+async function handleScanSuccess(blob, data) {
+  M.img = '';
+  try { M.img = URL.createObjectURL(blob); } catch(e) {}
+  M.load = false;
+
+  const isDamaged = data.damaged === true || (typeof data.condition === 'string' && data.condition.toLowerCase().includes('damag'));
+  const conditionLabel = isDamaged
+    ? (data.damageNotes || data.condition || 'Damaged / Hazard warning')
+    : (data.condition || 'Intact and cool');
+
+  const instructions = (Array.isArray(data.instructions) && data.instructions.length)
+    ? data.instructions
+    : ['Confirm battery chemistry on printed label', 'Tape exposed terminals with nonconductive tape', 'Drop off at certified collection facility'];
+
+  const r = {
+    item: data.item || 'Recognized Battery',
+    cat: data.category || 'battery',
+    type: data.batteryType || data.type || 'battery',
+    description: data.item || data.description || '',
+    markings: data.markings || '',
+    condition: conditionLabel,
+    isDamaged: isDamaged,
+    conditionEvidence: data.damageNotes || data.conditionEvidence || '',
+    dam: isDamaged ? (data.damageNotes || 'Battery appears damaged, leaking, or swollen.') : '',
+    conf: typeof data.confidence === 'number' ? data.confidence : 0.95,
+    f: data.dropoffFilter || (isDamaged ? 'none' : 'batteries'),
+    st: instructions,
+    phone: isDamaged ? '813-272-5680' : '813-272-5680',
+    phoneStatus: null,
+    source: null
+  };
+
+  M.cur = r;
+  if (r.conf >= 0.6 && r.cat !== 'other' && r.cat !== 'unknown') {
+    S.count++;
+    S.hist.unshift({ item: r.item, type: r.type, d: new Date().toLocaleDateString() });
+    S.hist = S.hist.slice(0, 20);
+    sv();
+  }
+  go('result');
+  render();
+
+  // Asynchronously enrich with local plan & sites in background without blocking result UI
+  const planType = data.type || (data.batteryType === 'alkaline' ? 'household' : (data.batteryType === 'lithium_ion' ? 'rechargeable' : 'rechargeable'));
+  fetch('/api/plan', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ type: planType, condition: isDamaged ? 'damaged' : 'intact', area: 'Tampa' })
+  }).then(res => res.ok ? res.json() : null).then(pData => {
+    if (!pData) return;
+    if (Array.isArray(pData.sites) && pData.sites.length) {
+      D = pData.sites.map((x, i) => ({
+        id: 's' + i,
+        name: x.name,
+        lat: x.lat,
+        lng: x.lng,
+        acc: x.types || ['batteries'],
+        open: true,
+        address: x.address || '',
+        hours: x.hours || '',
+        phone: x.phone || '',
+        callFirst: Boolean(x.callFirst)
+      }));
+    }
+    if (pData.advice) {
+      if (pData.advice.phone) r.phone = pData.advice.phone;
+      if (pData.advice.source) r.source = pData.advice.source;
+    }
+  }).catch(() => {});
+}
+
+async function startCamera() {
+  const vid = $('#camera');
+  const placeholder = $('#cam-placeholder');
+  const msg = $('#cam-status-msg');
+  const badge = $('#cam-badge-text');
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    if (msg) msg.textContent = 'Camera is unavailable in this browser. Upload a photo below.';
+    if (placeholder) placeholder.style.display = 'flex';
+    if (vid) vid.style.display = 'none';
+    return;
+  }
+
+  stopCamera();
+  scanAbortController = new AbortController();
+  const signal = scanAbortController.signal;
+
+  try {
+    if (msg) msg.textContent = 'Activating 1080p HD camera…';
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: currentFacingMode },
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 },
+        frameRate: { ideal: 30, min: 15 }
+      }
+    });
+    if (signal.aborted) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      return;
+    }
+    if (vid) {
+      vid.srcObject = cameraStream;
+      vid.style.display = 'block';
+      await vid.play();
+    }
+    if (placeholder) placeholder.style.display = 'none';
+
+    // Apply continuous macro autofocus and auto-exposure if supported
+    const track = cameraStream.getVideoTracks()[0];
+    if (track && track.getCapabilities) {
+      try {
+        const caps = track.getCapabilities();
+        const advanced = [];
+        if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.push({ focusMode: 'continuous' });
+        if (caps.exposureMode && caps.exposureMode.includes('continuous')) advanced.push({ exposureMode: 'continuous' });
+        if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes('continuous')) advanced.push({ whiteBalanceMode: 'continuous' });
+        if (advanced.length) await track.applyConstraints({ advanced }).catch(() => {});
+        if (caps.torch) {
+          const torchBtn = $('#btn-torch-toggle');
+          if (torchBtn) torchBtn.style.display = 'inline-flex';
+        }
+      } catch(e) {}
+    }
+
+    // Ultra-fast multi-frame detection loop using vision.py
+    for (let i = 0; i < 8 && !signal.aborted; i++) {
+      if (i === 0) {
+        if (msg) msg.textContent = 'Hold battery steady in focus box…';
+        await new Promise(r => setTimeout(r, 350));
+      } else {
+        if (msg) msg.textContent = 'Scanning battery markings…';
+        await new Promise(r => setTimeout(r, 450));
+      }
+      if (signal.aborted || !cameraStream) return;
+      if (msg) msg.textContent = 'Analyzing frame with Gemini AI…';
+      if (badge) badge.textContent = 'Analyzing frame…';
+
+      const frameBlob = await grabFrame(i % 2 === 1);
+      if (signal.aborted || !frameBlob) return;
+
+      try {
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'content-type': 'image/jpeg' },
+          body: frameBlob,
+          signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.category && data.category !== 'unknown' && data.confidence >= 0.6) {
+            stopCamera();
+            await handleScanSuccess(frameBlob, data);
+            return;
+          }
+        }
+      } catch (e) {
+        if (signal.aborted) return;
+      }
+      if (badge) badge.textContent = 'Autofocus Macro Active';
+    }
+    if (!signal.aborted && msg) {
+      msg.textContent = 'Hold steady or click "⚡ Scan Now" / "📸 Phone camera app" below.';
+    }
+  } catch (err) {
+    if (!signal.aborted && msg) {
+      msg.textContent = err.name === 'NotAllowedError'
+        ? 'Camera permission denied. Click Snap with device camera below.'
+        : 'Could not access camera: ' + err.message;
+      if (placeholder) placeholder.style.display = 'flex';
+      if (vid) vid.style.display = 'none';
+    }
+  }
+}
+
+function stopCamera() {
+  torchActive = false;
+  currentZoom = 1.0;
+  const zoomBtn = $('#btn-zoom-toggle');
+  if (zoomBtn) {
+    zoomBtn.textContent = '1x Wide';
+    zoomBtn.style.background = 'rgba(14,20,16,0.85)';
+    zoomBtn.style.color = '#fff';
+  }
+  const vidEl = $('#camera');
+  if (vidEl) vidEl.style.transform = 'scale(1)';
+  if (scanAbortController) {
+    scanAbortController.abort();
+    scanAbortController = null;
+  }
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  const vid = $('#camera');
+  const placeholder = $('#cam-placeholder');
+  const msg = $('#cam-status-msg');
+  const torchBtn = $('#btn-torch-toggle');
+  if (torchBtn) torchBtn.style.display = 'none';
+
+  if (vid) {
+    vid.pause();
+    vid.srcObject = null;
+    vid.style.display = 'none';
+  }
+  if (placeholder) placeholder.style.display = 'flex';
+  if (msg) msg.textContent = '';
+}
+
+function go(v) {
+  if (v !== 'scan') stopCamera();
+  if (location.hash === '#' + v) render();
+  else location.hash = v;
+}
+
+async function scan(f) {
+  if (!f) return;
+  M.img = '';
+  try { M.img = URL.createObjectURL(f); } catch(e) {}
+  M.load = true;
+  render();
+
+  try {
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'content-type': f.type || 'image/jpeg' },
+      body: f
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ok) {
+        await handleScanSuccess(f, data);
+        return;
+      }
+    }
+  } catch(e) {}
+
+  M.load = false;
+  M.cur = {
+    item: 'Item label unclear',
+    cat: 'unknown',
+    type: 'unknownBattery',
+    dam: '',
+    conf: 0.5,
+    f: 'none',
+    st: [
+      'Take a closer, well-lit photo of one item with the label facing the camera.',
+      'Check the product label or manufacturer instructions before choosing a disposal option.'
+    ],
+    phone: '813-272-5680'
+  };
+  go('result');
+  render();
+}
+
+async function submitManual(type, condition, area) {
+  M.load = true;
+  render();
+  try {
+    const body = { type, condition, area };
+    if (M.F.u) body.position = [M.F.u.lat, M.F.u.lng];
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const adv = data.advice || {};
+      M.cur = {
+        item: adv.summary || type,
+        cat: 'battery',
+        type: type,
+        condition: condition === 'intact' ? 'Intact and cool' : condition,
+        isDamaged: condition !== 'intact',
+        dam: condition !== 'intact' ? (adv.headline || adv.callout || 'Damaged / hazard warning') : '',
+        conf: 1.0,
+        f: condition === 'intact' ? 'batteries' : 'none',
+        st: adv.steps || adv.guidance || ['Tape terminals', 'Store in non-flammable container', 'Follow county disposal guidelines'],
+        phone: adv.phone,
+        source: adv.source
+      };
+      if (Array.isArray(data.sites) && data.sites.length) {
+        D = data.sites.map((x, i) => ({
+          id: 's' + i,
+          name: x.name,
+          lat: x.lat,
+          lng: x.lng,
+          acc: x.types || ['batteries'],
+          open: true,
+          address: x.address || '',
+          hours: x.hours || ''
+        }));
+      }
+      M.load = false;
+      if (condition === 'intact') {
+        S.count++;
+        S.hist.unshift({ item: M.cur.item, type: M.cur.type, d: new Date().toLocaleDateString() });
+        S.hist = S.hist.slice(0, 20);
+        sv();
+      }
+      go('result');
+      return;
+    }
+  } catch(e) {}
+  M.load = false;
+  M.cur = R[0];
+  go('result');
+}
+
+function reply(q) {
+  q = q.toLowerCase();
+  const has = (...w) => w.some(x => q.includes(x));
+  if (has('swollen', 'puffy', 'bulg'))
+    return ['A swollen lithium battery is a fire risk. Tape the terminals, keep it away from heat and flammable items, use a non-flammable container, and take it to a drop-off point soon.', 1];
+  if (has('trash', 'bin', 'garbage', 'throw'))
+    return ['Batteries should never go in household trash or curbside recycling. They spark severe fires in garbage trucks and recycling plants.', 1];
+  if (has('where', 'drop', 'near', 'location', 'take'))
+    return ['I can show drop-off points near you around Tampa and Hillsborough County.', 1];
+  if (has('tape', 'terminal'))
+    return ['Taping the terminals stops them from touching metal and short-circuiting. It matters most for lithium and 9V batteries.'];
+  if (has('lithium', 'phone', 'vape'))
+    return ['Lithium-ion batteries need extra care: tape the terminals, keep them cool, and never put them in the trash.', 1];
+  if (has('coin', 'button'))
+    return ['Coin and button cells contain lithium. Tape them and bring them to a drop-off point. Keep them far from children and pets.', 1];
+  if (has('level', 'impact', 'count'))
+    return ['Each battery you keep out of landfill adds to your impact count. Every 5 scans unlocks a new level!'];
+  if (has('hi', 'hello', 'hey'))
+    return ['Hi! Ask me about battery safety, chemistries, or where to drop one off.'];
+  return ['I can help with battery safety, disposal rules, and finding drop-off points. Try “Where do I take a battery?”'];
+}
+
+async function say(q) {
+  if (!q.trim()) return;
+  M.chat.push({ t: q });
+  cr();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ messages: [q] })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.title || (data.steps && data.steps.length)) {
+        M.chat.push({
+          b: 1,
+          title: data.title,
+          steps: data.steps,
+          phone: data.phone,
+          showDropoffs: data.showDropoffs !== false,
+          t: (data.steps ? data.steps.join(' ') : data.title)
+        });
+        cr();
+        return;
+      }
+    }
+  } catch(e) {}
+
+  const r = reply(q);
+  M.chat.push({ b: 1, t: r[0], a: r[1] });
+  cr();
+}
+
+function cr() {
+  const m = $('#ms');
+  m.innerHTML = M.chat.map(x => `
+    <div class="${x.b ? 'bw' : 'bu'}">
+      ${x.title ? `<b style="display:block;margin-bottom:6px;color:var(--tx)">${esc(x.title)}</b>` : ''}
+      ${x.steps && x.steps.length > 1
+        ? `<ol style="margin:4px 0;padding-left:18px">${x.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`
+        : `<p style="margin:0">${esc(x.t)}</p>`}
+      ${x.phone ? `
+        <div style="margin-top:8px">
+          <a href="tel:${esc(x.phone)}" class="cta sm row" style="display:inline-flex;padding:6px 14px;background:var(--rd);color:#fff;text-decoration:none;border-radius:18px">
+            📞 Call ${esc(x.phone)}
+          </a>
+        </div>
+      ` : ''}
+      ${x.showDropoffs || x.a ? `
+        <div class="sw" style="margin-top:8px">
+          <button class="ch sm" data-a="chatfind">Show drop-off points</button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+  m.scrollTop = m.scrollHeight;
+}
+
+async function locate() {
+  const F = M.F;
+  if (!navigator.geolocation) {
+    F.msg = 'GPS is not available on this device, showing the Tampa/USF area.';
+    render();
+    fetchBackendDropoffs(28.06, -82.41);
+    return;
+  }
+  F.msg = 'Finding your location…';
+  render();
+  navigator.geolocation.getCurrentPosition(async p => {
+    F.u = { lat: p.coords.latitude, lng: p.coords.longitude };
+    F.msg = '';
+    render();
+    await fetchBackendDropoffs(p.coords.latitude, p.coords.longitude);
+  }, async () => {
+    F.u = null;
+    F.msg = 'Could not get your location, showing the Tampa/USF area.';
+    render();
+    await fetchBackendDropoffs(28.06, -82.41);
+  }, { timeout: 8000 });
+}
+
+async function fetchBackendDropoffs(lat, lng) {
+  try {
+    const filter = M.F.f === 'all' ? 'batteries' : M.F.f;
+    const res = await fetch(`/api/dropoffs?lat=${lat}&lng=${lng}&filter=${filter}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.results) && data.results.length) {
+        D = data.results.map((x, i) => ({
+          id: x.id || 's' + i,
+          name: x.name || ('Drop-off ' + (i + 1)),
+          lat: x.lat,
+          lng: x.lng,
+          acc: x.accepts || ['batteries'],
+          open: x.openNow !== false,
+          address: x.address || '',
+          hours: x.hours || ''
+        }));
+        render();
+      }
+    }
+  } catch(e) {}
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]');
+  if (!b) return;
+  const a = b.dataset.a, v = b.dataset.v, F = M.F;
+  if (a === 'tab') { M.tab = v; M.err = ''; render(); }
+  else if (a === 'guest') { S.user = { name: 'Guest Hero', guest: 1 }; sv(); go('home'); }
+  else if (a === 'scan') { go('scan'); }
+  else if (a === 'cam-toggle') {
+    if (cameraStream) {
+      stopCamera();
+      const msg = $('#cam-status-msg');
+      if (msg) msg.textContent = 'Camera paused.';
+      const btn = $('#btn-cam-toggle');
+      if (btn) btn.textContent = 'Resume camera';
+    } else {
+      startCamera();
+      const btn = $('#btn-cam-toggle');
+      if (btn) btn.textContent = 'Pause camera';
+    }
+  }
+  else if (a === 'torch-toggle') { toggleTorch(); }
+  else if (a === 'zoom-toggle') { toggleZoom(); }
+  else if (a === 'flip-cam') { flipCamera(); }
+  else if (a === 'instant-scan') { triggerInstantScan(); }
+  else if (a === 'phone-cam') { $('#fi').click(); }
+  else if (a === 'upload') { $('#fi-file').click(); }
+  else if (a === 'go') { go(v); }
+  else if (a === 'find') { F.f = v; go('find'); fetchBackendDropoffs(F.u ? F.u.lat : 28.06, F.u ? F.u.lng : -82.41); }
+  else if (a === 'theme') { S.theme = eff() === 'dark' ? 'light' : 'dark'; sv(); render(); }
+  else if (a === 'th') { S.theme = v; sv(); render(); }
+  else if (a === 'locate') { locate(); }
+  else if (a === 'open') { F.open = !F.open; render(); }
+  else if (a === 'flt') { F.f = v; render(); fetchBackendDropoffs(F.u ? F.u.lat : 28.06, F.u ? F.u.lng : -82.41); }
+  else if (a === 'sel') {
+    const list = M.lastDropoffs || [];
+    const idx = list.findIndex(d => d.id === v);
+    F.sel = F.sel === v ? null : v;
+    render();
+    if (F.sel && idx >= 0 && window.Watt2DoMap) {
+      setTimeout(() => {
+        window.Watt2DoMap.selectDropoff(idx);
+      }, 50);
+    }
+  }
+  else if (a === 'save') {
+    const i = S.saved.indexOf(v);
+    i < 0 ? S.saved.push(v) : S.saved.splice(i, 1);
+    sv();
+    render();
+  }
+  else if (a === 'out') {
+    updateAccount('sign-out').catch(() => {});
+    S.user = null;
+    M.tab = 'create';
+    sv();
+    go('welcome');
+    render();
+  }
+  else if (a === 'clear') { S = { user: S.user, acc: S.acc, count: 0, hist: [], saved: [], theme: S.theme }; sv(); render(); }
+  else if (a === 'fab') {
+    const c = $('#chat');
+    c.hidden = !c.hidden;
+    if (!c.hidden) { cr(); $('#ci').focus(); }
+  }
+  else if (a === 'q') { say(b.dataset.q); }
+  else if (a === 'chatfind') { $('#chat').hidden = true; go('find'); }
+});
+
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'cf') {
+    const i = $('#ci');
+    say(i.value);
+    i.value = '';
+    return;
+  }
+  if (e.target.id === 'mf') {
+    const t = $('#m-type').value, c = $('#m-cond').value, a = $('#m-area').value.trim() || 'Tampa';
+    submitManual(t, c, a);
+    return;
+  }
+  if (e.target.id === 'af') {
+    const f = new FormData(e.target);
+    const em = f.get('e').trim().toLowerCase();
+    const pw = btoa(f.get('p'));
+    M.err = '';
+    if (M.tab === 'create') {
+      if (S.acc.some(x => x.e === em)) {
+        M.err = 'That email already has an account. Try Sign in.';
+        render();
+        return;
+      }
+      const n = f.get('n').trim();
+      S.acc.push({ e: em, n, p: pw });
+      S.user = { name: n, email: em };
+    } else {
+      const a = S.acc.find(x => x.e === em && x.p === pw);
+      if (!a) {
+        M.err = 'No account matches that email and password.';
+        render();
+        return;
+      }
+      S.user = { name: a.n, email: em };
+    }
+    sv();
+    go('home');
+    render();
+  }
+});
+
+$('#fi').addEventListener('change', e => { if (e.target.files[0]) { scan(e.target.files[0]); e.target.value = ''; } });
+$('#fi-file')?.addEventListener('change', e => { if (e.target.files[0]) { scan(e.target.files[0]); e.target.value = ''; } });
+addEventListener('hashchange', () => {
+  if (location.hash !== '#scan') stopCamera();
+  render();
+});
+
+$('#logo').innerHTML = BAT(30) + '<span>Watt<b>2</b>Do</span>';
+$('#fab').innerHTML = MS(38);
+$('#cav').innerHTML = MS(32);
+
+let googleClientId = '';
+
+function mountGoogleSignIn() {
+  if (!googleClientId) return;
+  const slot = document.getElementById('g-signin-slot');
+  if (!slot) return;
+
+  function renderGSI() {
+    if (!window.google?.accounts?.id) return;
+    try {
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (resp) => {
+          if (resp && resp.credential) {
+            const user = await updateAccount('google', resp.credential);
+            if (user) {
+              S.user = user;
+              sv();
+              go('home');
+              render();
+            }
+          }
+        }
+      });
+      slot.innerHTML = '';
+      window.google.accounts.id.renderButton(slot, {
+        theme: eff() === 'dark' ? 'filled_black' : 'outline',
+        size: 'large',
+        width: 300,
+        shape: 'pill'
+      });
+    } catch(err) {}
+  }
+
+  if (window.google?.accounts?.id) {
+    renderGSI();
+  } else if (!document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.defer = true;
+    s.onload = renderGSI;
+    document.head.appendChild(s);
+  }
+}
+
+async function initAccount() {
+  try {
+    const res = await fetch('/api/account');
+    if (res.ok) {
+      const data = await res.json();
+      googleClientId = data.clientId || '';
+      if (data.user) {
+        S.user = data.user;
+        sv();
+        render();
+      } else {
+        mountGoogleSignIn();
+      }
+    }
+  } catch(e) {}
+}
+
+async function updateAccount(action, credential) {
+  try {
+    const res = await fetch('/api/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, credential })
+    });
+    const data = await res.json();
+    return data.user;
+  } catch(e) {
+    return null;
+  }
+}
+
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
+render();
+initAccount();
+</script>
 </body>
 </html>
